@@ -190,7 +190,7 @@ function generateExtraMembers(state) {
             		break;
             	}
             }
-            if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&allVallsFound) {            
+            if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&allVallsFound) {
                 var mask = blankMask.concat([]);
         
                 for (var j = 1; j < dat.length; j++) {
@@ -204,7 +204,7 @@ function generateExtraMembers(state) {
                     } else {
                     	if (o.layer===undefined) {
                     		logError('Object "' + n.toUpperCase() + '" has been defined, but not assigned to a layer.',dat.lineNumber);
-                    	} else {                    		
+                    	} else {
 	                        logError(
 	                            'Trying to create an aggregate object (defined in the legend) with both "'
 	                            + n.toUpperCase() + '" and "' + state.idDict[mask[o.layer]].toUpperCase() + '", which are on the same layer and therefore can\'t coexist.',
@@ -246,7 +246,7 @@ function generateExtraMembers(state) {
 		else if (value in propertiesDict) {
 			propertiesDict[key]=propertiesDict[value];
 		} else if (key!==value) {
-			synonymsDict[key] = value;		
+			synonymsDict[key] = value;
 		}
 	}
 	state.synonymsDict = synonymsDict;
@@ -416,13 +416,13 @@ function levelFromString(state,level) {
 				if (state.propertiesDict[ch]===undefined) {
 					logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
 				} else {
-					logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);							
+					logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);
 				}
 
 			}
 
 			var maskint = new BitVec(STRIDE_OBJ);
-			mask = mask.concat([]);					
+			mask = mask.concat([]);
 			for (var z = 0; z < o.layerCount; z++) {
 				if (mask[z]>=0) {
 					maskint.ibitset(mask[z]);
@@ -536,7 +536,7 @@ function findIndexAfterToken(str,tokens,tokenIndex){
 	return curIndex;
 }
 
-function processRuleString(rule, state, curRules) 
+function processRuleString(rule, state, curRules)
 {
 /*
 
@@ -618,20 +618,20 @@ function processRuleString(rule, state, curRules)
 		switch (parsestate) {
 			case 0: {
 				//read initial directions
-				if (token==='+') {					
+				if (token==='+') {
 					if (groupNumber===lineNumber) {
 						if (curRules.length==0) {
-							logError('The "+" symbol, for joining a rule with the group of the previous rule, needs a previous rule to be applied to.');							
+							logError('The "+" symbol, for joining a rule with the group of the previous rule, needs a previous rule to be applied to.');
 						}
 						if (i!==0) {
 							logError('The "+" symbol, for joining a rule with the group of the previous rule, must be the first symbol on the line ');
-						}						
+						}
 						groupNumber = curRules[curRules.length-1].groupNumber;
 					} else {
 						logError('Two "+"s ("append to previous rule group" symbol) applied to the same rule.',lineNumber);
 					}
 				} else if (token in directionaggregates) {
-					directions = directions.concat(directionaggregates[token]);						
+					directions = directions.concat(directionaggregates[token]);
 				} else if (token==='late') {
 						late=true;
 				} else if (token==='rigid') {
@@ -985,12 +985,12 @@ function expandNoPrefixedProperties(state, cell) {
 		} else {
 			expanded.push(dir);
 			expanded.push(name);
-		} 
+		}
 	}
 	return expanded;
 }
 
-function concretizePropertyRule(state, rule,lineNumber) {	
+function concretizePropertyRule(state, rule,lineNumber) {
 
 	//step 1, rephrase rule to change "no flying" to "no cat no bat"
 	for (var i = 0; i < rule.lhs.length; i++) {
@@ -1073,7 +1073,7 @@ function concretizePropertyRule(state, rule,lineNumber) {
                             if (newrule.propertyReplacement[property]===undefined) {
     							newrule.propertyReplacement[property]=[concreteType,1];
                             } else {
-    							newrule.propertyReplacement[property][1]=newrule.propertyReplacement[property][1]+1;                                
+    							newrule.propertyReplacement[property][1]=newrule.propertyReplacement[property][1]+1;
                             }
 
 							result.push(newrule);
@@ -1147,7 +1147,7 @@ function concretizePropertyRule(state, rule,lineNumber) {
 }
 
 
-function concretizeMovingRule(state, rule,lineNumber) {	
+function concretizeMovingRule(state, rule,lineNumber) {
 
 	var shouldremove;
 	var result = [rule];
@@ -1191,7 +1191,7 @@ function concretizeMovingRule(state, rule,lineNumber) {
                             if (newrule.movingReplacement[cand_name]===undefined) {
     							newrule.movingReplacement[cand_name]=[concreteDirection,1,ambiguous_dir];
                             } else {
-    							newrule.movingReplacement[cand_name][1]=newrule.movingReplacement[cand_name][1]+1;                                
+    							newrule.movingReplacement[cand_name][1]=newrule.movingReplacement[cand_name][1]+1;
                             }
 
 							result.push(newrule);
@@ -1269,7 +1269,7 @@ function concretizeMovingRule(state, rule,lineNumber) {
 				var cur_cell = cur_rulerow[k];
 				var movings = getMovings(state, cur_cell);
 				if (movings.length > 0) {
-					rhsAmbiguousMovementsRemain = movings[0][1];					
+					rhsAmbiguousMovementsRemain = movings[0][1];
 				}
 			}
 		}
@@ -1361,7 +1361,7 @@ function convertRelativeDirsToAbsolute(rule) {
 	}
 }
 
-var relativeDirs = ['^','v','<','>','parallel','perpendicular'];//used to index the following
+var relativeDirs = ['^','v','<','>','parallel','perpendicular']; //used to index the following
 var relativeDict = {
 	'right': ['up', 'down', 'left', 'right','horizontal','vertical'],
 	'up': ['left', 'right', 'down', 'up','vertical','horizontal'],
@@ -1374,7 +1374,7 @@ function absolutifyRuleCell(forward, cell) {
 		var c = cell[i];
 		var index = relativeDirs.indexOf(c);
 		if (index >= 0) {
-			cell[i] = relativeDict[forward][index];		
+			cell[i] = relativeDict[forward][index];
 		}
 	}
 }
@@ -1437,9 +1437,9 @@ function rulesToMask(state) {
 						} else if (rule.rhs.length>0) {
 							var rhscell=cellrow_r[k];
 							if (rhscell.length!==2 || rhscell[0]!=='...') {
-								logError("An ellipsis on the left must be matched by one in the corresponding place on the right.",rule.lineNumber);								
+								logError("An ellipsis on the left must be matched by one in the corresponding place on the right.",rule.lineNumber);
 							}
-						} 
+						}
 						break;
 					}  else if (object_dir==='random') {
 						logError("'random' cannot be matched on the left-hand side, it can only appear on the right",rule.lineNumber);
@@ -1488,13 +1488,13 @@ function rulesToMask(state) {
 					var rhscell = cellrow_r[k];
 					var lhscell = cellrow_l[k];
 					if (rhscell[0]==='...' && lhscell[0]!=='...' ) {
-						logError("An ellipsis on the right must be matched by one in the corresponding place on the left.",rule.lineNumber);								
+						logError("An ellipsis on the right must be matched by one in the corresponding place on the left.",rule.lineNumber);
 					}
 					for (var l=0;l<rhscell.length;l+=2) {
 						var content=rhscell[l];
 						if (content==='...') {
 							if (rhscell.length!==2) {
-								logError("You can't have anything in with an ellipsis. Sorry.",rule.lineNumber);							
+								logError("You can't have anything in with an ellipsis. Sorry.",rule.lineNumber);
 							}
 						}
 					}
@@ -1532,8 +1532,8 @@ function rulesToMask(state) {
 						break;
 					} else if (object_dir==='random') {
 						if (object_name in state.objectMasks) {
-							var mask = state.objectMasks[object_name];    
-							randomMask_r.ior(mask);                      
+							var mask = state.objectMasks[object_name];
+							randomMask_r.ior(mask);
 						} else {
 							logError('You want to spawn a random "'+object_name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
 						}
@@ -1576,7 +1576,7 @@ function rulesToMask(state) {
 							movementsClear.ishiftor(0x1f, 5*layerIndex);
 						} if (object_dir==='randomdir') {
 							randomDirMask_r.ishiftor(dirMasks[object_dir], 5 * layerIndex);
-						} else {						
+						} else {
 							movementsSet.ishiftor(dirMasks[object_dir], 5 * layerIndex);
 						};
 					}
@@ -1625,26 +1625,27 @@ function cellRowMasks(rule) {
 	return ruleMasks;
 }
 
+// idk something
 function collapseRules(groups) {
 	for (var gn = 0; gn < groups.length; gn++) {
 		var rules = groups[gn];
 		for (var i = 0; i < rules.length; i++) {
 			var oldrule = rules[i];
-			var newrule = [0,[],oldrule.rhs.length>0,oldrule.lineNumber/*ellipses,group number,rigid,commands,randomrule,[cellrowmasks]*/];
+			var newrule = [0, [], oldrule.rhs.length > 0, oldrule.lineNumber/*ellipses,group number,rigid,commands,randomrule,[cellrowmasks]*/];
 			var ellipses = [];
-			for (var j=0;j<oldrule.lhs.length;j++) {
+			for (var j = 0; j < oldrule.lhs.length; j++) {
 				ellipses.push(false);
 			}
 
-			newrule[0]=dirMasks[oldrule.direction];
+			newrule[0] = dirMasks[oldrule.direction];
 			for (var j = 0; j < oldrule.lhs.length; j++) {
 				var cellrow_l = oldrule.lhs[j];
 				for (var k = 0; k < cellrow_l.length; k++) {
 					if (cellrow_l[k] === ellipsisPattern) {
 						if (ellipses[j]) {
 							logError("You can't use two ellipses in a single cell match pattern.  If you really want to, please implement it yourself and send me a patch :) ", oldrule.lineNumber);
-						} 
-						ellipses[j]=true;
+						}
+						ellipses[j] = true;
 					}
 				}
 				newrule[1][j] = cellrow_l;
@@ -1661,12 +1662,13 @@ function collapseRules(groups) {
 	matchCache = {}; // clear match cache so we don't slowly leak memory
 }
 
+// checks that 'random' rule groups are only labeled as such on the first rule
 function ruleGroupRandomnessTest(ruleGroup) {
 	if (ruleGroup.length === 0)
 		return;
 	var firstLineNumber = ruleGroup[0].lineNumber;
-	for (var i=1;i<ruleGroup.length;i++) {
-		var rule=ruleGroup[i];
+	for (var i = 1; i < ruleGroup.length; i++) {
+		var rule = ruleGroup[i];
 		if (rule.lineNumber === firstLineNumber) // random [A | B] gets turned into 4 rules, skip
 			continue;
 		if (rule.randomRule) {
@@ -1675,23 +1677,24 @@ function ruleGroupRandomnessTest(ruleGroup) {
 	}
 }
 
+// self explanatory
 function arrangeRulesByGroupNumber(state) {
 	var aggregates = {};
 	var aggregates_late = {};
-	for (var i=0;i<state.rules.length;i++) {
+	for (var i = 0; i < state.rules.length; i++) {
 		var rule = state.rules[i];
 		var targetArray = aggregates;
 		if (rule.late) {
-			targetArray=aggregates_late;
+			targetArray = aggregates_late;
 		}
 
-		if (targetArray[rule.groupNumber]==undefined) {
-			targetArray[rule.groupNumber]=[];
+		if (targetArray[rule.groupNumber] == undefined) {
+			targetArray[rule.groupNumber] = [];
 		}
 		targetArray[rule.groupNumber].push(rule);
 	}
 
-	var result=[];
+	var result = [];
 	for (var groupNumber in aggregates) {
 		if (aggregates.hasOwnProperty(groupNumber)) {
 			var ruleGroup = aggregates[groupNumber];
@@ -1699,7 +1702,7 @@ function arrangeRulesByGroupNumber(state) {
 			result.push(ruleGroup);
 		}
 	}
-	var result_late=[];
+	var result_late = [];
 	for (var groupNumber in aggregates_late) {
 		if (aggregates_late.hasOwnProperty(groupNumber)) {
 			var ruleGroup = aggregates_late[groupNumber];
@@ -1707,21 +1710,21 @@ function arrangeRulesByGroupNumber(state) {
 			result_late.push(ruleGroup);
 		}
 	}
-	state.rules=result;
+	state.rules = result;
 
 	//check that there're no late movements with direction requirements on the lhs
-	state.lateRules=result_late;
+	state.lateRules = result_late;
 }
 
-
+// checks that no late moves contain motion
 function checkNoLateRulesHaveMoves(state){
-	for (var ruleGroupIndex=0;ruleGroupIndex<state.lateRules.length;ruleGroupIndex++) {
+	for (var ruleGroupIndex = 0; ruleGroupIndex < state.lateRules.length; ruleGroupIndex++) {
 		var lateGroup = state.lateRules[ruleGroupIndex];
-		for (var ruleIndex=0;ruleIndex<lateGroup.length;ruleIndex++) {
+		for (var ruleIndex = 0; ruleIndex < lateGroup.length; ruleIndex++) {
 			var rule = lateGroup[ruleIndex];
-			for (var cellRowIndex=0;cellRowIndex<rule.patterns.length;cellRowIndex++) {
+			for (var cellRowIndex = 0; cellRowIndex < rule.patterns.length; cellRowIndex++) {
 				var cellRow_l = rule.patterns[cellRowIndex];
-				for (var cellIndex=0;cellIndex<cellRow_l.length;cellIndex++) {
+				for (var cellIndex = 0; cellIndex < cellRow_l.length; cellIndex++) {
 					var cellPattern = cellRow_l[cellIndex];
 					if (cellPattern === ellipsisPattern) {
 						continue;
@@ -1733,7 +1736,7 @@ function checkNoLateRulesHaveMoves(state){
 						return;
 					}
 
-					if (cellPattern.replacement!=null) {
+					if (cellPattern.replacement != null) {
 						var movementsClear = cellPattern.replacement.movementsClear;
 						var movementsSet = cellPattern.replacement.movementsSet;
 
@@ -1741,59 +1744,68 @@ function checkNoLateRulesHaveMoves(state){
 							logError("Movements cannot appear in late rules.",rule.lineNumber);
 							return;
 						}
-					}				
+					}
 				}
 			}
 		}
 	}
 }
 
+// creates a list of all rigid groups
 function generateRigidGroupList(state) {
-	var rigidGroupIndex_to_GroupIndex=[];
-	var groupIndex_to_RigidGroupIndex=[];
-	var groupNumber_to_GroupIndex=[];
-	var groupNumber_to_RigidGroupIndex=[];
-	var rigidGroups=[];
-	for (var i=0;i<state.rules.length;i++) {
-		var ruleset=state.rules[i];
-		var rigidFound=false;
-		for (var j=0;j<ruleset.length;j++) {
-			var rule=ruleset[j];
+	var rigidGroupIndex_to_GroupIndex = [];
+	var groupIndex_to_RigidGroupIndex = [];
+	var groupNumber_to_GroupIndex = [];
+	var groupNumber_to_RigidGroupIndex = [];
+	var rigidGroups = [];
+    
+	for (var i = 0; i < state.rules.length; i++) {
+		var ruleset = state.rules[i];
+        
+        // checks if the ruleset contains a rigid rule
+		var rigidFound = false;
+		for (var j = 0; j < ruleset.length; j++) {
+			var rule = ruleset[j];
 			if (rule.isRigid) {
-				rigidFound=true;
+				rigidFound = true;
 			}
 		}
-		rigidGroups[i]=rigidFound;
+
+		rigidGroups[i] = rigidFound;
+
 		if (rigidFound) {
-			var groupNumber=ruleset[0].groupNumber;
-			groupNumber_to_GroupIndex[groupNumber]=i;
+			var groupNumber = ruleset[0].groupNumber;
+			groupNumber_to_GroupIndex[groupNumber] = i;
 			var rigid_group_index = rigidGroupIndex_to_GroupIndex.length;
-			groupIndex_to_RigidGroupIndex[i]=rigid_group_index;
-			groupNumber_to_RigidGroupIndex[groupNumber]=rigid_group_index;
+			groupIndex_to_RigidGroupIndex[i] = rigid_group_index;
+			groupNumber_to_RigidGroupIndex[groupNumber] = rigid_group_index;
 			rigidGroupIndex_to_GroupIndex.push(i);
 		}
 	}
-	if (rigidGroupIndex_to_GroupIndex.length>30) {
+    
+	if (rigidGroupIndex_to_GroupIndex.length > 30) {
 		logError("There can't be more than 30 rigid groups (rule groups containing rigid members).",rules[0][0][3]);
 	}
 
-	state.rigidGroups=rigidGroups;
-	state.rigidGroupIndex_to_GroupIndex=rigidGroupIndex_to_GroupIndex;
-	state.groupNumber_to_RigidGroupIndex=groupNumber_to_RigidGroupIndex;
-	state.groupIndex_to_RigidGroupIndex=groupIndex_to_RigidGroupIndex;
+	state.rigidGroups = rigidGroups;
+	state.rigidGroupIndex_to_GroupIndex = rigidGroupIndex_to_GroupIndex;
+	state.groupNumber_to_RigidGroupIndex = groupNumber_to_RigidGroupIndex;
+	state.groupIndex_to_RigidGroupIndex = groupIndex_to_RigidGroupIndex;
 }
 
-function getMaskFromName(state,name) {
-	var objectMask=new BitVec(STRIDE_OBJ);
+// creates and returns a mask for the object with the given name
+// used only to create the player mask
+function getMaskFromName(state, name) {
+	var objectMask = new BitVec(STRIDE_OBJ);
 	if (name in state.objects) {
-		var o=state.objects[name];
+		var o = state.objects[name];
 		objectMask.ibitset(o.id);
 	}
 
 	if (name in state.aggregatesDict) {
 		var objectnames = state.aggregatesDict[name];
-		for(var i=0;i<objectnames.length;i++) {
-			var n=objectnames[i];
+		for (var i = 0; i < objectnames.length; i++) {
+			var n = objectnames[i];
 			var o = state.objects[n];
 			objectMask.ibitset(o.id);
 		}
@@ -1801,7 +1813,7 @@ function getMaskFromName(state,name) {
 
 	if (name in state.propertiesDict) {
 		var objectnames = state.propertiesDict[name];
-		for(var i=0;i<objectnames.length;i++) {
+		for (var i = 0; i < objectnames.length; i++) {
 			var n = objectnames[i];
 			var o = state.objects[n];
 			objectMask.ibitset(o.id);
@@ -1820,26 +1832,27 @@ function getMaskFromName(state,name) {
 	return objectMask;
 }
 
+// generate masks for layers and objects
 function generateMasks(state) {
-	state.playerMask=getMaskFromName(state,'player');
+	state.playerMask = getMaskFromName(state, 'player');
 
-	var layerMasks=[];
+	var layerMasks = [];
 	var layerCount = state.collisionLayers.length;
-	for (var layer=0;layer<layerCount;layer++){
-		var layerMask=new BitVec(STRIDE_OBJ);
-		for (var j=0;j<state.objectCount;j++) {
-			var n=state.idDict[j];
+	for (var layer = 0; layer < layerCount; layer++){
+		var layerMask = new BitVec(STRIDE_OBJ);
+		for (var j = 0; j < state.objectCount; j++) {
+			var n = state.idDict[j];
 			var o = state.objects[n];
-			if (o.layer==layer) {
+			if (o.layer == layer) {
 				layerMask.ibitset(o.id);
 			}
 		}
 		layerMasks.push(layerMask);
 	}
-	state.layerMasks=layerMasks;
+	state.layerMasks = layerMasks;
 
-	var objectMask={};
-	for(var n in state.objects) {
+	var objectMask = {};
+	for (var n in state.objects) {
 		if (state.objects.hasOwnProperty(n)) {
 			var o = state.objects[n];
 			objectMask[n] = new BitVec(STRIDE_OBJ);
@@ -1855,34 +1868,35 @@ function generateMasks(state) {
 		return a.lineNumber - b.lineNumber;
 	});
 
-	for (var i=0;i<synonyms_and_properties.length;i++) {
+	for (var i = 0; i < synonyms_and_properties.length; i++) {
 		var synprop = synonyms_and_properties[i];
 		if (synprop.length == 2) {
 			// synonym (a = b)
-			objectMask[synprop[0]]=objectMask[synprop[1]];
+			objectMask[synprop[0]] = objectMask[synprop[1]];
 		} else {
 			// property (a = b or c)
 			var val = new BitVec(STRIDE_OBJ);
-			for (var j=1;j<synprop.length;j++) {
+			for (var j = 1; j < synprop.length; j++) {
 				var n = synprop[j];
 				val.ior(objectMask[n]);
 			}
-			objectMask[synprop[0]]=val;
+			objectMask[synprop[0]] = val;
 		}
 	}
 
 	state.objectMasks = objectMask;
 }
 
+// checks that every object has been assigned to a collision layer
 function checkObjectsAreLayered(state) {
 	for (var n in state.objects) {
 		if (state.objects.hasOwnProperty(n)) {
-			var found=false;
-			for (var i=0;i<state.collisionLayers.length;i++) {
+			var found = false;
+			for (var i = 0; i < state.collisionLayers.length; i++) {
 				var layer = state.collisionLayers[i];
-				for (var j=0;j<layer.length;j++) {
-					if (layer[j]===n) {
-						found=true;
+				for (var j = 0; j < layer.length; j++) {
+					if (layer[j] === n) {
+						found = true;
 						break;
 					}
 				}
@@ -1898,93 +1912,101 @@ function checkObjectsAreLayered(state) {
 	}
 }
 
+// turns metadata into a map
+// parses coordinate values for flickscreen and zoomscreen
 function twiddleMetaData(state) {
 	var newmetadata = {};
-	for (var i=0;i<state.metadata.length;i+=2) {
+	for (var i = 0; i < state.metadata.length; i += 2) {
 		var key = state.metadata[i];
-		var val = state.metadata[i+1];
-		newmetadata[key]=val;
+		var val = state.metadata[i + 1];
+		newmetadata[key] = val;
 	}
 
-	if (newmetadata.flickscreen!==undefined) {
+	if (newmetadata.flickscreen !== undefined) {
 		var val = newmetadata.flickscreen;
 		var coords = val.split('x');
-		var intcoords = [parseInt(coords[0]),parseInt(coords[1])];
-		newmetadata.flickscreen=intcoords;
+		var intcoords = [parseInt(coords[0]), parseInt(coords[1])];
+		newmetadata.flickscreen = intcoords;
 	}
-	if (newmetadata.zoomscreen!==undefined) {
+    
+	if (newmetadata.zoomscreen !== undefined) {
 		var val = newmetadata.zoomscreen;
 		var coords = val.split('x');
-		var intcoords = [parseInt(coords[0]),parseInt(coords[1])];
-		newmetadata.zoomscreen=intcoords;
+		var intcoords = [parseInt(coords[0]), parseInt(coords[1])];
+		newmetadata.zoomscreen = intcoords;
 	}
-
-	state.metadata=newmetadata;	
+    
+	state.metadata = newmetadata;
 }
 
+// processes all win conditions into a simplified form
+// each condition is turned into an array [type, obj1, obj2, lineNumber]
+// type is assigned as follows {no: -1, some: 0, all: 1}
 function processWinConditions(state) {
-//	[-1/0/1 (no,some,all),ob1,ob2] (ob2 is background by default)
-	var newconditions=[]; 
-	for (var i=0;i<state.winconditions.length;i++)  {
-		var wincondition=state.winconditions[i];
-		if (wincondition.length==0) {
+    // [-1/0/1 (no,some,all),ob1,ob2] (ob2 is background by default)
+	var newconditions = [];
+	for (var i = 0; i < state.winconditions.length; i++)  {
+		var wincondition = state.winconditions[i];
+		if (wincondition.length == 0) {
 			return;
 		}
-		var num=0;
+		var num = 0;
 		switch(wincondition[0]) {
-			case 'no':{num=-1;break;}
-			case 'all':{num=1;break;}
+			case 'no': { num = -1; break; }
+			case 'all': { num = 1; break; }
 		}
 
-		var lineNumber=wincondition[wincondition.length-1];
+		var lineNumber = wincondition[wincondition.length - 1];
 
 		var n1 = wincondition[1];
 		var n2;
-		if (wincondition.length==5) {
+		if (wincondition.length == 5) {
 			n2 = wincondition[3];
 		} else {
 			n2 = 'background';
 		}
 
-		var mask1=0;
-		var mask2=0;
+		var mask1 = 0;
+		var mask2 = 0;
 		if (n1 in state.objectMasks) {
-			mask1=state.objectMasks[n1];
+			mask1 = state.objectMasks[n1];
 		} else {
-			logError('unwelcome term "' + n1 +'" found in win condition. Win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
+			logError('unwelcome term "' + n1 + '" found in win condition. Win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
 		}
 		if (n2 in state.objectMasks) {
-			mask2=state.objectMasks[n2];
+			mask2 = state.objectMasks[n2];
 		} else {
-			logError('unwelcome term "' + n2+ '" found in win condition. Win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
+			logError('unwelcome term "' + n2 + '" found in win condition. Win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
 		}
-		var newcondition = [num,mask1,mask2,lineNumber];
+		var newcondition = [num, mask1, mask2, lineNumber];
 		newconditions.push(newcondition);
 	}
-	state.winconditions=newconditions;
+	state.winconditions = newconditions;
 }
 
+// creates and returns a string representing a row of cells
 function printCellRow(cellRow) {
-	var result ="[ ";
-	for (var i=0;i<cellRow.length;i++) {
-		if (i>0) {
+	var result = "[ ";
+	for (var i = 0; i < cellRow.length; i++) {
+		if (i > 0) {
 			result += "| ";
 		}
 		var cell = cellRow[i];
-		for (var j=0;j<cell.length;j+=2) {
+		for (var j = 0; j < cell.length; j += 2) {
 			var direction = cell[j];
-			var object = cell[j+1]
-			if (direction==="...") {
-				result += direction+" ";
+			var object = cell[j + 1]
+			if (direction === "...") {
+				result += direction + " ";
 			} else {
-				result += direction+" "+object+" ";
+				result += direction + " " + object + " ";
 			}
-		}		
+		}
 	}
-	result +="] ";
+	result += "] ";
 	return result;
 }
 
+// creates and returns a string representing the rule
 function printRule(rule) {
 	var result="(<a onclick=\"jumpToLine('"+ rule.lineNumber.toString() + "');\"  href=\"javascript:void(0);\">"+rule.lineNumber+"</a>) "+ rule.direction.toString().toUpperCase()+" ";
 	if (rule.rigid) {
@@ -2001,21 +2023,23 @@ function printRule(rule) {
 		result = result + printCellRow(cellRow);
 	}
 	result = result + "-> ";
-	for (var i=0;i<rule.rhs.length;i++) {
+	for (var i = 0; i < rule.rhs.length; i++) {
 		var cellRow = rule.rhs[i];
 		result = result + printCellRow(cellRow);
 	}
-	for (var i=0;i<rule.commands.length;i++) {
+	for (var i = 0; i < rule.commands.length; i++) {
 		var command = rule.commands[i];
-		if (command.length===1) {
-			result = result +command[0].toString();
+		if (command.length === 1) {
+			result = result + command[0].toString();
 		} else {
-			result = result + '('+command[0].toString()+", "+command[1].toString()+') ';			
+			result = result + '(' + command[0].toString() + ", " + command[1].toString() + ') ';
 		}
 	}
 	//print commands next
 	return result;
 }
+
+// prints all the rules contained in the given state
 function printRules(state) {
 	var output = "<br>Rule Assembly : ("+ state.rules.length +" rules )<br>===========<br>";
 	var loopIndex = 0;
@@ -2036,136 +2060,141 @@ function printRules(state) {
 			output += "ENDLOOP<br>";
 			loopEnd = -1;
 		}
-		output += printRule(rule) +"<br>";
+		output += printRule(rule) + "<br>";
 	}
 	if (loopEnd !== -1) {	// no more rules after loop end
 		output += "ENDLOOP<br>";
 	}
-	output+="===========<br>";
+	output += "===========<br>";
 	consolePrint(output);
 }
 
+// removes duplicate rules
 function removeDuplicateRules(state) {
-	console.log("rule count before = " +state.rules.length);
+	console.log("rule count before = " + state.rules.length);
 	var record = {};
 	var newrules=[];
 	var lastgroupnumber=-1;
-	for (var i=state.rules.length-1;i>=0;i--) {
+	for (var i = state.rules.length - 1; i >= 0; i--) {
 		var r = state.rules[i];
 		var groupnumber = r.groupNumber;
-		if (groupnumber!==lastgroupnumber) {
-			record={};
+		if (groupnumber !== lastgroupnumber) {
+			record = {};
 		}
-		var r_string=printRule(r);
+		var r_string = printRule(r);
 		if (record.hasOwnProperty(r_string)) {
-			state.rules.splice(i,1);
+			state.rules.splice(i, 1);
 		} else {
-			record[r_string]=true;
+			record[r_string] = true;
 		}
-		lastgroupnumber=groupnumber;
+		lastgroupnumber = groupnumber;
 	}
-	console.log("rule count after = " +state.rules.length);
+	console.log("rule count after = " + state.rules.length);
 }
+
+// set the loop points (indices of each loop's starting rule)
 function generateLoopPoints(state) {
-	var loopPoint={};
-	var loopPointIndex=0;
-	var outside=true;
-	var source=0;
-	var target=0;
-	if (state.loops.length%2===1) {
+	var loopPoint = {};
+	var loopPointIndex = 0;
+	var outside = true;
+	var source = 0;
+	var target = 0;
+    
+	if (state.loops.length % 2 === 1) {
 		logErrorNoLine("have to have matching number of  'startLoop' and 'endLoop' loop points.");
 	}
-
-	for (var j=0;j<state.loops.length;j++) {
+    
+	for (var j = 0; j < state.loops.length; j++) {
 		var loop = state.loops[j];
-		for (var i=0;i<state.rules.length;i++) {
+		for (var i = 0; i < state.rules.length; i++) {
 			var ruleGroup = state.rules[i];
 
-			var firstRule = ruleGroup[0];			
-			var lastRule = ruleGroup[ruleGroup.length-1];
+			var firstRule = ruleGroup[0];
+			var lastRule = ruleGroup[ruleGroup.length - 1];
 
 			var firstRuleLine = firstRule.lineNumber;
 			var lastRuleLine = lastRule.lineNumber;
 
 			if (outside) {
-				if (firstRuleLine>=loop[0]) {
-					target=i;
-					outside=false;
-					if (loop[1]===-1) {
-						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");						
+				if (firstRuleLine >= loop[0]) {
+					target = i;
+					outside = false;
+					if (loop[1] === -1) {
+						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");
 					}
 					break;
 				}
 			} else {
-				if (firstRuleLine>=loop[0]) {
-					source = i-1;		
-					loopPoint[source]=target;
-					outside=true;
-					if (loop[1]===1) {
-						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");						
+				if (firstRuleLine >= loop[0]) {
+					source = i - 1;
+					loopPoint[source] = target;
+					outside = true;
+					if (loop[1] === 1) {
+						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");
 					}
 					break;
 				}
 			}
 		}
 	}
-	if (outside===false) {
+    
+	if (outside === false) {
 		var source = state.rules.length;
-		loopPoint[source]=target;
-	} else {
+		loopPoint[source] = target;
 	}
-	state.loopPoint=loopPoint;
-
-	loopPoint={};
-	outside=true;
-	for (var j=0;j<state.loops.length;j++) {
+	state.loopPoint = loopPoint;
+    
+	loopPoint = {};
+	outside = true;
+	for (var j = 0; j < state.loops.length; j++) {
 		var loop = state.loops[j];
-		for (var i=0;i<state.lateRules.length;i++) {
+		for (var i = 0; i < state.lateRules.length; i++) {
 			var ruleGroup = state.lateRules[i];
 
-			var firstRule = ruleGroup[0];			
-			var lastRule = ruleGroup[ruleGroup.length-1];
+			var firstRule = ruleGroup[0];
+			var lastRule = ruleGroup[ruleGroup.length - 1];
 
 			var firstRuleLine = firstRule.lineNumber;
 			var lastRuleLine = lastRule.lineNumber;
 
 			if (outside) {
-				if (firstRuleLine>=loop[0]) {
-					target=i;
-					outside=false;
-					if (loop[1]===-1) {
-						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");						
+				if (firstRuleLine >= loop[0]) {
+					target = i;
+					outside = false;
+					if (loop[1] === -1) {
+						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");
 					}
 					break;
 				}
 			} else {
-				if (firstRuleLine>=loop[0]) {
-					source = i-1;		
-					loopPoint[source]=target;
-					outside=true;
-					if (loop[1]===1) {
-						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");						
+				if (firstRuleLine >= loop[0]) {
+					source = i - 1;
+					loopPoint[source] = target;
+					outside = true;
+					if (loop[1] === 1) {
+						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");
 					}
 					break;
 				}
 			}
 		}
 	}
-	if (outside===false) {
+    
+	if (outside === false) {
 		var source = state.lateRules.length;
-		loopPoint[source]=target;
-	} else {
+		loopPoint[source] = target;
 	}
-	state.lateLoopPoint=loopPoint;
+    
+	state.lateLoopPoint = loopPoint;
 }
 
-var soundEvents = ["titlescreen", "startgame", "cancel", "endgame", "startlevel","undo","restart","endlevel","showmessage","closemessage","sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10"];
+var soundEvents = ["titlescreen","startgame","cancel","endgame","startlevel","undo","restart","endlevel","showmessage","closemessage","sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10"];
 var soundMaskedEvents =["create","destroy","move","cantmove","action"];
 var soundVerbs = soundEvents.concat(soundMaskedEvents);
 
 
-function validSeed (seed ) {
-	return /^\s*\d+\s*$/.exec(seed)!==null;
+function validSeed(seed) {
+	return /^\s*\d+\s*$/.exec(seed) !== null;
 }
 
 
@@ -2182,74 +2211,73 @@ var soundDirectionIndicatorMasks = {
 
 var soundDirectionIndicators = ["up","down","left","right","horizontal","vertical","orthogonal","___action____"];
 
-
+// generates sounds (I don't understand this one exactly)
 function generateSoundData(state) {
-	var sfx_Events={};
-	var sfx_CreationMasks=[];
-	var sfx_DestructionMasks=[];
-	var sfx_MovementMasks=[];
-	var sfx_MovementFailureMasks=[];
+	var sfx_Events = {};
+	var sfx_CreationMasks = [];
+	var sfx_DestructionMasks = [];
+	var sfx_MovementMasks = [];
+	var sfx_MovementFailureMasks = [];
 
-	for (var i=0;i<state.sounds.length;i++) {
-		var sound=state.sounds[i];
-		if (sound.length<=1) {
+	for (var i = 0; i < state.sounds.length; i++) {
+		var sound = state.sounds[i];
+		if (sound.length <= 1) {
 			continue;
 		}
-		var lineNumber=sound[sound.length-1];
+		var lineNumber = sound[sound.length - 1];
 
-		if (sound.length===2){			
-			logError('incorrect sound declaration.',lineNumber);
+		if (sound.length === 2){
+			logError('incorrect sound declaration.', lineNumber);
 			continue;
 		}
 
-		if (soundEvents.indexOf(sound[0])>=0) {
-			if (sound.length>4) {
-				logError("too much stuff to define a sound event.",lineNumber);
+		if (soundEvents.indexOf(sound[0]) >= 0) {
+			if (sound.length > 4) {
+				logError("too much stuff to define a sound event.", lineNumber);
 			}
 			var seed = sound[1];
 			if (validSeed(seed)) {
-				if (sfx_Events[sound[0]]!==undefined){
-					logWarning(sound[0].toUpperCase()+" already declared.",lineNumber);				
-				} 
-				sfx_Events[sound[0]]=sound[1];
+				if (sfx_Events[sound[0]] !== undefined){
+					logWarning(sound[0].toUpperCase() + " already declared.", lineNumber);
+				}
+				sfx_Events[sound[0]] = sound[1];
 			} else {
-				logError("Expecting sfx data, instead found \""+sound[1]+"\".",lineNumber);				
+				logError("Expecting sfx data, instead found \"" + sound[1] + "\".", lineNumber);
 			}
 		} else {
 			var target = sound[0].trim();
 			var verb = sound[1].trim();
-			var directions = sound.slice(2,sound.length-2);
-			if (directions.length>0&&(verb!=='move'&&verb!=='cantmove')) {
-				logError('incorrect sound declaration.',lineNumber);
+			var directions = sound.slice(2, sound.length - 2);
+			if (directions.length > 0 && (verb !== 'move' && verb !== 'cantmove')) {
+				logError('incorrect sound declaration.', lineNumber);
 			}
 
-			if (verb==='action') {
-				verb='move';
-				directions=['___action____'];
+			if (verb === 'action') {
+				verb = 'move';
+				directions = ['___action____'];
 			}
 
-			if (directions.length==0) {
-				directions=["orthogonal"];
+			if (directions.length == 0) {
+				directions = ["orthogonal"];
 			}
-			var seed = sound[sound.length-2];
+			var seed = sound[sound.length - 2];
 
 			if (target in state.aggregatesDict) {
-				logError('cannot assign sound fevents to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("'+target+'").',lineNumber);
-			}
-			else if (target in state.objectMasks) {
-
+				logError('cannot assign sound fevents to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("' + target + '").', lineNumber);
+			} else if (target in state.objectMasks) {
+                // no errors!
 			} else {
-				logError('Object "'+ target+'" not found.',lineNumber);
+				logError('Object "' + target + '" not found.', lineNumber);
 			}
 
 			var objectMask = state.objectMasks[target];
 
-			var directionMask=0;
-			for (var j=0;j<directions.length;j++) {
-				directions[j]=directions[j].trim();
-				var direction=directions[j];
-				if (soundDirectionIndicators.indexOf(direction)===-1) {
-					logError('Was expecting a direction, instead found "'+direction+'".',lineNumber);
+			var directionMask = 0;
+			for (var j = 0; j < directions.length; j++) {
+				directions[j] = directions[j].trim();
+				var direction = directions[j];
+				if (soundDirectionIndicators.indexOf(direction) === -1) {
+					logError('Was expecting a direction, instead found "' + direction + '".', lineNumber);
 				} else {
 					var soundDirectionMask = soundDirectionIndicatorMasks[direction];
 					directionMask |= soundDirectionMask;
@@ -2257,34 +2285,34 @@ function generateSoundData(state) {
 			}
 
 
-			var targets=[target];
-			var modified=true;
+			var targets = [target];
+			var modified = true;
 			while(modified) {
-				modified=false;
-				for (var k=0;k<targets.length;k++) {
+				modified = false;
+				for (var k = 0; k < targets.length; k++) {
 					var t = targets[k];
 					if (t in state.synonymsDict) {
-						targets[k]=state.synonymsDict[t];
-						modified=true;
+						targets[k] = state.synonymsDict[t];
+						modified = true;
 					} else if (t in state.propertiesDict) {
-						modified=true;
+						modified = true;
 						var props = state.propertiesDict[t];
-						targets.splice(k,1);
+						targets.splice(k, 1);
 						k--;
-						for (var l=0;l<props.length;l++) {
+						for (var l = 0; l < props.length; l++) {
 							targets.push(props[l]);
 						}
 					}
 				}
 			}
-
-			if (verb==='move' || verb==='cantmove') {
-				for (var j=0;j<targets.length;j++) {
+            
+			if (verb === 'move' || verb === 'cantmove') {
+				for (var j = 0; j < targets.length; j++) {
 					var targetName = targets[j];
 					var targetDat = state.objects[targetName];
 					var targetLayer = targetDat.layer;
 					var shiftedDirectionMask = new BitVec(STRIDE_MOV);
-					shiftedDirectionMask.ishiftor(directionMask, 5*targetLayer);
+					shiftedDirectionMask.ishiftor(directionMask, 5 * targetLayer); // magic number
 
 					var o = {
 						objectMask: objectMask,
@@ -2292,21 +2320,21 @@ function generateSoundData(state) {
 						seed: seed
 					};
 
-					if (verb==='move') {
-						sfx_MovementMasks.push(o);						
+					if (verb === 'move') {
+						sfx_MovementMasks.push(o);
 					} else {
 						sfx_MovementFailureMasks.push(o);
 					}
 				}
 			}
-
-
+            
+            
 			if (!validSeed(seed)) {
-				logError("Expecting sfx data, instead found \""+seed+"\".",lineNumber);	
+				logError("Expecting sfx data, instead found \"" + seed + "\".", lineNumber);
 			}
 
-			var targetArray;
-			switch(verb) {
+			var targetArray; // unused?
+			switch (verb) {
 				case "create": {
 					var o = {
 						objectMask: objectMask,
@@ -2334,35 +2362,40 @@ function generateSoundData(state) {
 	state.sfx_MovementFailureMasks = sfx_MovementFailureMasks;
 }
 
-
-function formatHomePage(state){
-	if ('background_color' in state.metadata) {
-		state.bgcolor=colorToHex(colorPalette,state.metadata.background_color);
+// formats the home page based on the game state
+function formatHomePage(state) {
+	
+    // set background color
+    if ('background_color' in state.metadata) {
+		state.bgcolor = colorToHex(colorPalette,state.metadata.background_color);
 	} else {
-		state.bgcolor="#000000";
+		state.bgcolor = "#000000";
 	}
+    
+    // set text color
 	if ('text_color' in state.metadata) {
 		state.fgcolor=colorToHex(colorPalette,state.metadata.text_color);
 	} else {
 		state.fgcolor="#FFFFFF";
 	}
 	
-	if (isColor(state.fgcolor)===false ){
-		logError("text_color in incorrect format - found "+state.fgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').")
+    // check for color format errorss
+	if (isColor(state.fgcolor) === false) {
+		logError("text_color in incorrect format - found " + state.fgcolor + ", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').")
 	}
-	if (isColor(state.bgcolor)===false ){
-		logError("background_color in incorrect format - found "+state.bgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').")
+	if (isColor(state.bgcolor) === false) {
+		logError("background_color in incorrect format - found " + state.bgcolor + ", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').")
 	}
-
+    
+    // try to set the page's colors to match the game's colors
 	if (canSetHTMLColors) {
-		
-		if ('background_color' in state.metadata)  {
-			document.body.style.backgroundColor=state.bgcolor;
+		if ('background_color' in state.metadata) {
+			document.body.style.backgroundColor = state.bgcolor;
 		}
-		
+        
 		if ('text_color' in state.metadata) {
 			var separator = document.getElementById("separator");
-			if (separator!=null) {
+			if (separator != null) {
 			   separator.style.color = state.fgcolor;
 			}
 			
@@ -2370,29 +2403,34 @@ function formatHomePage(state){
 			for(var i = 0; i < h1Elements.length; i++) {
 			   h1Elements[i].style.color = state.fgcolor;
 			}
-
+            
 			var h1Elements = document.getElementsByTagName("h1");
 			for(var i = 0; i < h1Elements.length; i++) {
 			   h1Elements[i].style.color = state.fgcolor;
 			}
 		}
 	}
-
+    
+    // get homepage from metadata
 	if ('homepage' in state.metadata) {
 		var url = state.metadata['homepage'];
-		url=url.replace("http://","");
-		url=url.replace("https://","");
-		state.metadata['homepage']=url;
+		url = url.replace("http://", "");
+		url = url.replace("https://", "");
+		state.metadata['homepage'] = url;
 	}
 }
 
 var MAX_ERRORS=5;
+
+// parses and compiles the given text
+// calls codeMirrorFn.token()
 function loadFile(str) {
 	window.console.log('loadFile');
 
 	var processor = new codeMirrorFn();
 	var state = processor.startState();
-
+    
+    // parse each line of the text
 	var lines = str.split('\n');
 	for (var i = 0; i < lines.length; i++) {
 		var line = lines[i];
@@ -2405,7 +2443,7 @@ function loadFile(str) {
 				consolePrint("too many errors, aborting compilation");
 				return;
 			}
-		}		
+		}
 		while (ss.eol() === false);
 	}
 
@@ -2463,71 +2501,74 @@ function loadFile(str) {
 }
 
 var ifrm;
-function compile(command,text,randomseed) {
-	matchCache={};
-	forceRegenImages=true;
-	if (command===undefined) {
+
+// compiles text based on the given command and random seed
+// calls loadFile()
+function compile(command, text, randomseed) {
+	matchCache = {};
+	forceRegenImages = true;
+    
+	if (command === undefined) {
 		command = ["restart"];
 	}
-	if (randomseed===undefined) {
+	
+    if (randomseed === undefined) {
 		randomseed = null;
 	}
-	lastDownTarget=canvas;	
+	
+    lastDownTarget = canvas;
 
-	if (text===undefined){
+	if (text === undefined){
 		var code = window.form1.code;
-
 		var editor = code.editorreference;
 
-		text = editor.getValue()+"\n";
+		text = editor.getValue() + "\n";
 	}
-	if (canDump===true) {
-		compiledText=text;
+    
+	if (canDump === true) {
+		compiledText = text;
 	}
 
 	errorCount = 0;
 	compiling = true;
 	errorStrings = [];
+    
 	consolePrint('=================================');
-	try
-	{
+	try {
 		var state = loadFile(text);
-//		consolePrint(JSON.stringify(state));
 	} finally {
 		compiling = false;
 	}
-	if (errorCount>MAX_ERRORS) {
+    
+	if (errorCount > MAX_ERRORS) {
 		return;
 	}
-	/*catch(err)
-	{
-		if (anyErrors===false) {
-			logErrorNoLine(err.toString());
-		}
-	}*/
-
-	if (errorCount>0) {
+    
+	if (errorCount > 0) {
 		consoleError('<span class="systemMessage">Errors detected during compilation, the game may not work correctly.</span>');
-	}
-	else {
-		var ruleCount=0;
-		for (var i=0;i<state.rules.length;i++) {
+        
+	} else {
+        
+        // count the generated rules
+		var ruleCount = 0;
+        for (var i = 0; i < state.rules.length; i++) {
 			ruleCount+=state.rules[i].length;
 		}
-		for (var i=0;i<state.lateRules.length;i++) {
-			ruleCount+=state.lateRules[i].length;
+        for (var i = 0; i < state.lateRules.length; i++) {
+			ruleCount += state.lateRules[i].length;
 		}
-		if (command[0]=="restart") {
+        
+        // print the result
+		if (command[0] == "restart") {
 			consolePrint('<span class="systemMessage">Successful Compilation, generated ' + ruleCount + ' instructions.</span>');
 		} else {
 			consolePrint('<span class="systemMessage">Successful live recompilation, generated ' + ruleCount + ' instructions.</span>');
 
 		}
 	}
+    
 	setGameState(state,command,randomseed);
-
 	clearInputHistory();
-
 	consoleCacheDump();
 }
 
