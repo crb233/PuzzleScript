@@ -119,11 +119,187 @@ function logBetaMessage(str, urgent){
  * Parsing methds and variables
  */
 
-// handle the occurrance of a blank line in the source code
+// constant variables used for parsing
+var sectionNames = ['objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels'];
+var commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
+var reg_name = /[\w]+\s*/;///\w*[a-uw-zA-UW-Z0-9_]/;
+var reg_soundseed = /\d+\b/;
+var reg_sectionNames = /(objects|collisionlayers|legend|sounds|rules|winconditions|levels)\s*/;
+var reg_equalsrow = /[\=]+/;
+var reg_notcommentstart = /[^\(]+/;
+var reg_csv_separators = /[ \,]*/;
+var reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx1|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10)\s+/;
+var reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|forward|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
+var reg_loopmarker = /^(startloop|endloop)$/;
+var reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
+var reg_sounddirectionindicators = /\s*(up|down|left|right|horizontal|vertical|orthogonal)\s*/;
+var reg_winconditionquantifiers = /^(all|any|no|some)$/;
+var keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
+
+// var absolutedirs = ['up', 'down', 'right', 'left'];
+// var relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
+// var logicWords = ['all', 'no', 'on', 'some'];
+// var reg_commands = /\s*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\s*/;
+// var reg_number = /[\d]+/;
+// var reg_spriterow = /[\.0-9]{5}\s*/;
+// var reg_keywords = /(checkpoint|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
+// var fullSpriteMatrix = [
+//     '00000',
+//     '00000',
+//     '00000',
+//     '00000',
+//     '00000'
+// ];
+
+
+// This function returns an object containing methods needed to parse
+// PuzzleScript source code
+function codeMirrorFn() {
+    'use strict';
+    
+    return {
+        copyState: copyStateFunction,
+        blankLine: blankLineFunction,
+        token: tokenFunction,
+        
+        startState: function() {
+            return {
+                // permanently useful
+                objects: {},
+                
+                // just for parsing
+                lineNumber: 0,
+                commentLevel: 0,
+                section: '',
+                visitedSections: [],
+                
+                objects_candname: '',
+                objects_section: 0, //whether reading name/color/spritematrix
+                objects_spritematrix: [],
+                
+                collisionLayers: [],
+                
+                tokenIndex: 0,
+                
+                legend_synonyms: [],
+                legend_aggregates: [],
+                legend_properties: [],
+                
+                sounds: [],
+                rules: [],
+                
+                names: [],
+                
+                winconditions: [],
+                metadata: [],
+                
+                abbrevNames: [],
+                
+                levels: [[]],
+                
+                subsection: ''
+            };
+        }
+    };
+}
+
+function copyStateFunction(state) {
+    var objectsCopy = {};
+    for (var i in state.objects) {
+        if (state.objects.hasOwnProperty(i)) {
+            var o = state.objects[i];
+            objectsCopy[i] = {
+                colors: o.colors.concat([]),
+                lineNumber : o.lineNumber,
+                spritematrix: o.spritematrix.concat([])
+            }
+        }
+    }
+    
+    var collisionLayersCopy = [];
+    for (var i = 0; i < state.collisionLayers.length; i++) {
+        collisionLayersCopy.push(state.collisionLayers[i].concat([]));
+    }
+    
+    var legend_synonymsCopy = [];
+    var legend_aggregatesCopy = [];
+    var legend_propertiesCopy = [];
+    var soundsCopy = [];
+    var levelsCopy = [];
+    var winConditionsCopy = [];
+    
+    for (var i = 0; i < state.legend_synonyms.length; i++) {
+        legend_synonymsCopy.push(state.legend_synonyms[i].concat([]));
+    }
+    
+    for (var i = 0; i < state.legend_aggregates.length; i++) {
+        legend_aggregatesCopy.push(state.legend_aggregates[i].concat([]));
+    }
+    
+    for (var i = 0; i < state.legend_properties.length; i++) {
+        legend_propertiesCopy.push(state.legend_properties[i].concat([]));
+    }
+    
+    for (var i = 0; i < state.sounds.length; i++) {
+        soundsCopy.push(state.sounds[i].concat([]));
+    }
+    
+    for (var i = 0; i < state.levels.length; i++) {
+        levelsCopy.push(state.levels[i].concat([]));
+    }
+    
+    for (var i = 0; i < state.winconditions.length; i++) {
+        winConditionsCopy.push(state.winconditions[i].concat([]));
+    }
+    
+    var nstate = {
+        lineNumber: state.lineNumber,
+        
+        objects: objectsCopy,
+        collisionLayers: collisionLayersCopy,
+        
+        commentLevel: state.commentLevel,
+        section: state.section,
+        visitedSections: state.visitedSections.concat([]),
+        
+        objects_candname: state.objects_candname,
+        objects_section: state.objects_section,
+        objects_spritematrix: state.objects_spritematrix.concat([]),
+        
+        tokenIndex: state.tokenIndex,
+        legend_synonyms: legend_synonymsCopy,
+        legend_aggregates: legend_aggregatesCopy,
+        legend_properties: legend_propertiesCopy,
+        
+        sounds: soundsCopy,
+        rules: state.rules.concat([]),
+        names: state.names.concat([]),
+        winconditions: winConditionsCopy,
+        abbrevNames: state.abbrevNames.concat([]),
+        metadata : state.metadata.concat([]),
+        levels: levelsCopy,
+        
+        STRIDE_OBJ : state.STRIDE_OBJ,
+        STRIDE_MOV : state.STRIDE_MOV
+    };
+    
+    return nstate;
+}
+
+// called when a blank line appears during parsing
+function blankLineFunction(state) {
+    if (state.section === 'levels') {
+        if (state.levels[state.levels.length - 1].length > 0) {
+            state.levels.push([]);
+        }
+    }
+}
+
+// handle the occurrance of a blank line during parsing
+// why is it defined separately from the above? I have no idea
 function blankLineHandle(state) {
     if (state.section === 'levels') {
-        if (state.levels[state.levels.length - 1].length > 0)
-        {
+        if (state.levels[state.levels.length - 1].length > 0) {
             state.levels.push([]);
         }
     } else if (state.section === 'objects') {
@@ -141,6 +317,7 @@ function searchStringInArray(str, strArray) {
     return -1;
 }
 
+// unused in this file
 function isMatrixLine(str) {
     for (var j = 0; j < str.length; j++) {
         if (str.charAt(j) !== '.' && str.charAt(j) !== '0') {
@@ -176,51 +353,9 @@ function checkNameNew(state, candname) {
     }
 }
 
-// constant variables used for parsing
-var sectionNames = ['objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels'];
-var commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
-var reg_name = /[\w]+\s*/;///\w*[a-uw-zA-UW-Z0-9_]/;
-var reg_soundseed = /\d+\b/;
-var reg_sectionNames = /(objects|collisionlayers|legend|sounds|rules|winconditions|levels)\s*/;
-var reg_equalsrow = /[\=]+/;
-var reg_notcommentstart = /[^\(]+/;
-var reg_csv_separators = /[ \,]*/;
-var reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx1|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10)\s+/;
-var reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|forward|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
-var reg_loopmarker = /^(startloop|endloop)$/;
-var reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
-var reg_sounddirectionindicators = /\s*(up|down|left|right|horizontal|vertical|orthogonal)\s*/;
-var reg_winconditionquantifiers = /^(all|any|no|some)$/;
-var keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
-
-// unused variables
-var absolutedirs = ['up', 'down', 'right', 'left'];
-var relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
-var logicWords = ['all', 'no', 'on', 'some'];
-var reg_commands = /\s*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\s*/;
-var reg_number = /[\d]+/;
-var reg_spriterow = /[\.0-9]{5}\s*/;
-var reg_keywords = /(checkpoint|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
-var fullSpriteMatrix = [
-    '00000',
-    '00000',
-    '00000',
-    '00000',
-    '00000'
-];
-
-function blankLineFunction(state) {
-    if (state.section === 'levels') {
-        if (state.levels[state.levels.length - 1].length > 0) {
-            state.levels.push([]);
-        }
-    }
-}
-
+// parses the given data stream into tokens
 function tokenFunction(stream, state) {
     // stores the state of the current line (temporary data only)
-    // TODO put temporary variables in temp
-    // TODO split up section parsing into separate methods
     var temp = {};
     
     // original string for this line
@@ -242,6 +377,7 @@ function tokenFunction(stream, state) {
     
     // NESTED COMMENTS
     var ch = stream.peek();
+    temp.ch = ch;
     
     // begin comment, not in a message command
     // (tokenIndex of -4 indicates message command)
@@ -421,28 +557,28 @@ function tokenFunction(stream, state) {
     // if color is not set, try to parse color
     switch (state.section) {
         case 'objects':
-            return objectsParser(state, temp);
+            return objectsParser(stream, state, temp);
             
         case 'sounds':
-            return soundsParser(state, temp);
+            return soundsParser(stream, state, temp);
             
         case 'collisionlayers':
-            return collisionLayersParser(state, temp);
+            return collisionLayersParser(stream, state, temp);
             
         case 'legend':
-            return legendParser(state, temp);
+            return legendParser(stream, state, temp);
             
         case 'rules':
-            return rulesParser(state, temp);
+            return rulesParser(stream, state, temp);
             
         case 'winconditions':
-            return winConditionsParser(state, temp);
+            return winConditionsParser(stream, state, temp);
             
         case 'levels':
-            return levelsParser(state, temp);
+            return levelsParser(stream, state, temp);
             
         default:
-            return preambleParser(state, temp);
+            return preambleParser(stream, state, temp);
     }
     
     /* } */
@@ -457,7 +593,7 @@ function tokenFunction(stream, state) {
     }
 }
 
-function objectsParser(state, temp) {
+function objectsParser(stream, state, temp) {
     var tryParseName = function() {
         // LOOK FOR NAME
         var match_name = temp.sol ? stream.match(reg_name, true) : stream.match(/[^\s\()]+\s*/,true);
@@ -591,7 +727,7 @@ function objectsParser(state, temp) {
     }
 }
 
-function soundsParser(state, temp) {
+function soundsParser(stream, state, temp) {
     if (temp.sol) {
         var ok = true;
         var splits = reg_notcommentstart.exec(stream.string)[0].split(/\s/).filter(function(v) {return v !== ''});
@@ -629,7 +765,7 @@ function soundsParser(state, temp) {
     return 'ERROR';
 }
 
-function collisionLayersParser(state, temp) {
+function collisionLayersParser(stream, state, temp) {
     if (temp.sol) {
         //create new collision layer
         state.collisionLayers.push([]);
@@ -725,7 +861,7 @@ function collisionLayersParser(state, temp) {
     }
 }
 
-function legendParser(state, temp) {
+function legendParser(stream, state, temp) {
     if (temp.sol) {
         
         //step 1 : verify format
@@ -925,7 +1061,7 @@ function legendParser(state, temp) {
     }
 }
 
-function rulesParser(state, temp) {
+function rulesParser(stream, state, temp) {
     if (temp.sol) {
         var rule = reg_notcommentstart.exec(stream.string)[0];
         state.rules.push([rule, state.lineNumber, temp.mixedCase]);
@@ -939,8 +1075,8 @@ function rulesParser(state, temp) {
     if (stream.match(/\s*\-\>\s*/, true)) {
         return 'ARROW';
     }
-    if (ch === '[' || ch === '|' || ch === ']' || ch==='+') {
-        if (ch !== '+') {
+    if (temp.ch === '[' || temp.ch === '|' || temp.ch === ']' || temp.ch==='+') {
+        if (temp.ch !== '+') {
             state.tokenIndex = 1;
         }
         stream.next();
@@ -985,7 +1121,7 @@ function rulesParser(state, temp) {
     }
 }
 
-function winConditionsParser(state, temp) {
+function winConditionsParser(stream, state, temp) {
     if (temp.sol) {
         var tokenized = reg_notcommentstart.exec(stream.string);
         var splitted = tokenized[0].split(/\s/);
@@ -1030,7 +1166,7 @@ function winConditionsParser(state, temp) {
     }
 }
 
-function levelsParser(state, temp) {
+function levelsParser(stream, state, temp) {
     if (temp.sol) {
         if (stream.match(/\s*message\s*/, true)) {
             state.tokenIndex = 1;//1/2 = message/level
@@ -1082,7 +1218,7 @@ function levelsParser(state, temp) {
     }
 }
 
-function preambleParser(state, temp) {
+function preambleParser(stream, state, temp) {
     if (temp.sol) {
         state.tokenIndex = 0;
     }
@@ -1095,7 +1231,7 @@ function preambleParser(state, temp) {
                 if (['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube'].indexOf(token)>=0) {
                     
                     if (token === 'youtube' || token === 'author' || token === 'title') {
-                        stream.string=temp.mixedCase;
+                        stream.string = temp.mixedCase;
                     }
                     
                     var m2 = stream.match(reg_notcommentstart, false);
@@ -1127,141 +1263,6 @@ function preambleParser(state, temp) {
         stream.match(reg_notcommentstart, true);
         return "METADATATEXT";
     }
-}
-
-// This function returns an object containing methods used to parse
-// PuzzleScript source code
-var codeMirrorFn = function() {
-    'use strict';
-    
-    return {
-        copyState: copyStateFunction,
-        blankLine: blankLineFunction,
-        token: tokenFunction,
-        
-        startState: function() {
-            return {
-                /*
-                permanently useful
-                */
-                objects: {},
-                
-                /*
-                for parsing
-                */
-                lineNumber: 0,
-                
-                commentLevel: 0,
-                
-                section: '',
-                visitedSections: [],
-                
-                objects_candname: '',
-                objects_section: 0, //whether reading name/color/spritematrix
-                objects_spritematrix: [],
-                
-                collisionLayers: [],
-                
-                tokenIndex: 0,
-                
-                legend_synonyms: [],
-                legend_aggregates: [],
-                legend_properties: [],
-                
-                sounds: [],
-                rules: [],
-                
-                names: [],
-                
-                winconditions: [],
-                metadata: [],
-                
-                abbrevNames: [],
-                
-                levels: [[]],
-                
-                subsection: ''
-            };
-        }
-    };
-};
-
-function copyStateFunction(state) {
-    var objectsCopy = {};
-    for (var i in state.objects) {
-        if (state.objects.hasOwnProperty(i)) {
-            var o = state.objects[i];
-            objectsCopy[i] = {
-                colors: o.colors.concat([]),
-                lineNumber : o.lineNumber,
-                spritematrix: o.spritematrix.concat([])
-            }
-        }
-    }
-    
-    var collisionLayersCopy = [];
-    for (var i = 0; i < state.collisionLayers.length; i++) {
-        collisionLayersCopy.push(state.collisionLayers[i].concat([]));
-    }
-    
-    var legend_synonymsCopy = [];
-    var legend_aggregatesCopy = [];
-    var legend_propertiesCopy = [];
-    var soundsCopy = [];
-    var levelsCopy = [];
-    var winConditionsCopy = [];
-    
-    for (var i = 0; i < state.legend_synonyms.length; i++) {
-        legend_synonymsCopy.push(state.legend_synonyms[i].concat([]));
-    }
-    for (var i = 0; i < state.legend_aggregates.length; i++) {
-        legend_aggregatesCopy.push(state.legend_aggregates[i].concat([]));
-    }
-    for (var i = 0; i < state.legend_properties.length; i++) {
-        legend_propertiesCopy.push(state.legend_properties[i].concat([]));
-    }
-    for (var i = 0; i < state.sounds.length; i++) {
-        soundsCopy.push(state.sounds[i].concat([]));
-    }
-    for (var i = 0; i < state.levels.length; i++) {
-        levelsCopy.push(state.levels[i].concat([]));
-    }
-    for (var i = 0; i < state.winconditions.length; i++) {
-        winConditionsCopy.push(state.winconditions[i].concat([]));
-    }
-    
-    var nstate = {
-        lineNumber: state.lineNumber,
-        
-        objects: objectsCopy,
-        collisionLayers: collisionLayersCopy,
-        
-        commentLevel: state.commentLevel,
-        section: state.section,
-        visitedSections: state.visitedSections.concat([]),
-        
-        objects_candname: state.objects_candname,
-        objects_section: state.objects_section,
-        objects_spritematrix: state.objects_spritematrix.concat([]),
-        
-        tokenIndex: state.tokenIndex,
-        legend_synonyms: legend_synonymsCopy,
-        legend_aggregates: legend_aggregatesCopy,
-        legend_properties: legend_propertiesCopy,
-        
-        sounds: soundsCopy,
-        rules: state.rules.concat([]),
-        names: state.names.concat([]),
-        winconditions: winConditionsCopy,
-        abbrevNames: state.abbrevNames.concat([]),
-        metadata : state.metadata.concat([]),
-        levels: levelsCopy,
-        
-        STRIDE_OBJ : state.STRIDE_OBJ,
-        STRIDE_MOV : state.STRIDE_MOV
-    };
-    
-    return nstate;
 }
 
 window.CodeMirror.defineMode('puzzle', codeMirrorFn);
