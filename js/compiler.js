@@ -1378,16 +1378,8 @@ function absolutifyRuleCell(forward, cell) {
 		}
 	}
 }
-/*
-	direction mask
-	UP parseInt('%1', 2);
-	DOWN parseInt('0', 2);
-	LEFT parseInt('0', 2);
-	RIGHT parseInt('0', 2);
-	?  parseInt('', 2);
 
-*/
-
+//
 var dirMasks = {
 	'up'	: parseInt('00001', 2),
 	'down'	: parseInt('00010', 2),
@@ -1402,9 +1394,6 @@ var dirMasks = {
 };
 
 function rulesToMask(state) {
-	/*
-
-	*/
 	var layerCount = state.collisionLayers.length;
 	var layerTemplate = [];
 	for (var i = 0; i < layerCount; i++) {
@@ -1507,7 +1496,7 @@ function rulesToMask(state) {
 					cellrow_l[k] = new CellPattern([objectsPresent, objectsMissing, anyObjectsPresent, movementsPresent, movementsMissing, null]);
 				}
 
-				if (rule.rhs.length===0) {
+				if (rule.rhs.length === 0) {
 					continue;
 				}
 
@@ -1527,15 +1516,15 @@ function rulesToMask(state) {
 					var object_dir = cell_r[l];
 					var object_name = cell_r[l + 1];
 
-					if (object_dir==='...') {
+					if (object_dir === '...') {
 						//logError("spooky ellipsis found! (should never hit this)");
 						break;
-					} else if (object_dir==='random') {
+					} else if (object_dir === 'random') {
 						if (object_name in state.objectMasks) {
 							var mask = state.objectMasks[object_name];
 							randomMask_r.ior(mask);
 						} else {
-							logError('You want to spawn a random "'+object_name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
+							logError('You want to spawn a random "' + object_name.toUpperCase() + '", but I don\'t know how to do that', rule.lineNumber);
 						}
 						continue;
 					}
@@ -1543,13 +1532,14 @@ function rulesToMask(state) {
 					var object = state.objects[object_name];
 					var objectMask = state.objectMasks[object_name];
 					if (object) {
-						var layerIndex = object.layer|0;
+						var layerIndex = object.layer | 0;
 					} else {
 						var layerIndex = state.propertiesSingleLayer[object_name];
 					}
-
+                    
+                    
 					
-					if (object_dir=='no') {
+					if (object_dir == 'no') {
 						objectsClear.ior(objectMask);
 					} else {
 						var existingname = layersUsed_r[layerIndex];
@@ -1559,7 +1549,7 @@ function rulesToMask(state) {
 
 						layersUsed_r[layerIndex] = object_name;
 
-						if (object_dir.length>0) {
+						if (object_dir.length > 0) {
 							postMovementsLayerMask_r.ishiftor(0x1f, 5*layerIndex);
 						}
 
@@ -1572,9 +1562,9 @@ function rulesToMask(state) {
 						} else {
 							// shouldn't need to do anything here...
 						}
-						if (object_dir==='stationary') {
+						if (object_dir === 'stationary') {
 							movementsClear.ishiftor(0x1f, 5*layerIndex);
-						} if (object_dir==='randomdir') {
+						} if (object_dir === 'randomdir') {
 							randomDirMask_r.ishiftor(dirMasks[object_dir], 5 * layerIndex);
 						} else {
 							movementsSet.ishiftor(dirMasks[object_dir], 5 * layerIndex);
@@ -1610,12 +1600,12 @@ function rulesToMask(state) {
 }
 
 function cellRowMasks(rule) {
-	var ruleMasks=[];
-	var lhs=rule[1];
-	for (var i=0;i<lhs.length;i++) {
+	var ruleMasks = [];
+	var lhs = rule[1];
+	for (var i = 0; i < lhs.length; i++) {
 		var cellRow = lhs[i];
 		var rowMask=new BitVec(STRIDE_OBJ);
-		for (var j=0;j<cellRow.length;j++) {
+		for (var j = 0; j < cellRow.length; j++) {
 			if (cellRow[j] === ellipsisPattern)
 				continue;
 			rowMask.ior(cellRow[j].objectsPresent);
