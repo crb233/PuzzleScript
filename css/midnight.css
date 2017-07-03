@@ -45,7 +45,7 @@
 .cm-s-midnight span.cm-HEADER {color: #AE81FF; font-weight:bold;}
 .cm-s-midnight span.cm-EQUALSBIT {color: #808080;}
 .cm-s-midnight span.cm-SPRITEMATRIX {color: yellow; font-style:italic;}
-.cm-s-midnight span.cm-ERROR {color: white;} /* used to have background color of pink*/
+/*.cm-s-midnight span.cm-ERROR {color: white;} used to have background color of pink */
 .cm-s-midnight span.cm-ASSIGNMENT {color: #AE81FF;}
 .cm-s-midnight span.cm-LOGICWORD {color: #AE81FF;}
 .cm-s-midnight span.cm-BRACKET {color: #D1EDFF;}
@@ -57,10 +57,13 @@
 .cm-s-midnight span.cm-METADATA {color: #AE81FF;font-weight:bold;}
 .cm-s-midnight span.cm-METADATATEXT {color: orange;font-style:italic;}
 
+/* new error color */
+.cm-s-midnight span.cm-ERROR {text-decoration: underline; text-decoration-style: solid; text-decoration-color: red;}
+
 span.cm-SOUND {
 	color: orange;
-	cursor: pointer; 
-	cursor: hand; 
+	cursor: pointer;
+	cursor: hand;
 	text-decoration: underline;
 }
 .cm-s-midnight span.cm-SOUNDVERB {color: #AE81FF;}

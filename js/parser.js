@@ -19,6 +19,9 @@ http://androidarts.com/palette/16pal.htm
 
 The editor is a slight modification of codemirror (codemirror.net), which is crazy awesome.
 
+For more information on the custom codemirror mode (defined as codeMirrorFn):
+http://codemirror.net/doc/manual.html#modeapi
+
 */
 
 var compiling = false;
@@ -166,6 +169,7 @@ function codeMirrorFn() {
             return {
                 // permanently useful
                 objects: {},
+                sprite_size: 5,
                 
                 // just for parsing
                 lineNumber: 0,
@@ -174,11 +178,10 @@ function codeMirrorFn() {
                 visitedSections: [],
                 
                 objects_candname: '',
-                objects_section: 0, //whether reading name/color/spritematrix
+                objects_section: 0, // whether reading name/color/spritematrix
                 objects_spritematrix: [],
                 
                 collisionLayers: [],
-                
                 tokenIndex: 0,
                 
                 legend_synonyms: [],
@@ -187,22 +190,18 @@ function codeMirrorFn() {
                 
                 sounds: [],
                 rules: [],
-                
                 names: [],
-                
                 winconditions: [],
                 metadata: [],
-                
                 abbrevNames: [],
-                
                 levels: [[]],
-                
                 subsection: ''
             };
         }
     };
 }
 
+// copies a state object
 function copyStateFunction(state) {
     var objectsCopy = {};
     for (var i in state.objects) {
@@ -287,6 +286,7 @@ function copyStateFunction(state) {
 }
 
 // called when a blank line appears during parsing
+// is this used anywhere?
 function blankLineFunction(state) {
     if (state.section === 'levels') {
         if (state.levels[state.levels.length - 1].length > 0) {
@@ -541,6 +541,7 @@ function tokenFunction(stream, state) {
         
         return 'HEADER';
         
+    // we haven't entered a new section
     } else {
         if (state.section === undefined) {
             logError('must start with section "OBJECTS"', state.lineNumber);
@@ -552,9 +553,7 @@ function tokenFunction(stream, state) {
         return null;
     }
     
-    // if color is set, try to set matrix
-    // if can't set matrix, try to parse name
-    // if color is not set, try to parse color
+    // use the method for parsing the current section
     switch (state.section) {
         case 'objects':
             return objectsParser(stream, state, temp);
@@ -596,10 +595,10 @@ function tokenFunction(stream, state) {
 function objectsParser(stream, state, temp) {
     var tryParseName = function() {
         // LOOK FOR NAME
-        var match_name = temp.sol ? stream.match(reg_name, true) : stream.match(/[^\s\()]+\s*/,true);
+        var match_name = temp.sol ? stream.match(reg_name, true) : stream.match(/[^\s\()]+\s*/, true);
         if (match_name == null) {
             stream.match(reg_notcommentstart, true);
-            if (stream.pos>0){
+            if (stream.pos > 0){
                 logWarning('Unknown junk in object section (possibly: sprites have to be 5 pixels wide and 5 pixels high exactly. Or maybe: the main names for objects have to be words containing only the letters a-z0.9 - if you want to call them something like ",", do it in the legend section).',state.lineNumber);
             }
             return 'ERROR';
@@ -609,13 +608,13 @@ function objectsParser(stream, state, temp) {
                 logError('Object "' + candname.toUpperCase() + '" defined multiple times.', state.lineNumber);
                 return 'ERROR';
             }
-            for (var i=0;i<state.legend_synonyms.length;i++) {
+            for (var i = 0; i < state.legend_synonyms.length; i++) {
                 var entry = state.legend_synonyms[i];
-                if (entry[0]==candname) {
+                if (entry[0] == candname) {
                     logError('Name "' + candname.toUpperCase() + '" already in use.', state.lineNumber);
                 }
             }
-            if (keyword_array.indexOf(candname)>=0) {
+            if (keyword_array.indexOf(candname) >= 0) {
                 logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!', state.lineNumber);
             }
             
@@ -645,15 +644,18 @@ function objectsParser(stream, state, temp) {
         state.objects_section = 2;
     }
     
+    // which part of an object definition are we reading?
     switch (state.objects_section) {
+        // read the object's name (and possibly symbol?)
         case 0:
         case 1: {
             state.objects_spritematrix = [];
             return tryParseName();
             break;
         }
+        
+        // read the object's color palette
         case 2: {
-            //LOOK FOR COLOR
             state.tokenIndex = 0;
             var match_color = stream.match(reg_color, true);
             if (match_color == null) {
@@ -678,6 +680,8 @@ function objectsParser(stream, state, temp) {
             }
             break;
         }
+        
+        // read the object's sprite matrix
         case 3: {
             var ch = stream.eat(/[.\d]/);
             var spritematrix = state.objects_spritematrix;
@@ -707,7 +711,7 @@ function objectsParser(stream, state, temp) {
                 state.objects_section = 0;
             }
             
-            if (ch!=='.') {
+            if (ch !== '.') {
                 var n = parseInt(ch);
                 if (n>=o.colors.length) {
                     logError("Trying to access color number "+n+" from the color palette of sprite " +state.objects_candname.toUpperCase()+", but there are only "+o.colors.length+" defined in it.",state.lineNumber);
@@ -807,6 +811,7 @@ function collisionLayersParser(stream, state, temp) {
                     return [];
                 }
             }
+            
             for (var i = 0; i < state.legend_properties.length; i++) {
                 var a = state.legend_properties[i];
                 if (a[0] === n) {
@@ -814,6 +819,7 @@ function collisionLayersParser(stream, state, temp) {
                     return result;
                 }
             }
+            
             logError('Cannot add "' + candname.toUpperCase() + '" to a collision layer; it has not been declared.', state.lineNumber);
             return [];
         };
@@ -1265,4 +1271,557 @@ function preambleParser(stream, state, temp) {
     }
 }
 
-window.CodeMirror.defineMode('puzzle', codeMirrorFn);
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+var Message = {
+    log: 'log',
+    warning: 'warning',
+    error: 'error',
+};
+
+var Token = {
+    comment: 'comment',
+    separator: 'EQUALSBIT',
+    section: 'HEADER',
+    option: 'METADATA',
+    argument: 'METADATATEXT',
+    name: 'NAME',
+    color: 'COLOR',
+    sprite: 'SPRITEMATRIX',
+    sound_name: 'SOUNDVERB',
+    sound: 'SOUND',
+    direction: 'DIRECTION',
+    error: 'ERROR',
+};
+
+function types() {
+    if (arguments.length == 0) {
+        return null;
+    }
+    
+    var res = arguments[0];
+    for (var i = 1; i < arguments.length; i++) {
+        res += ' ' + arguments[i];
+    }
+    return res;
+}
+
+function err(message, line, column) {
+    return {
+        message: message,
+        line: line,
+        column: column
+    };
+}
+
+var commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
+var reg_soundseed = /\d+\b/;
+var reg_notcommentstart = /[^\(]+/;
+var reg_csv_separators = /[ \,]*/;
+var reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|forward|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
+var reg_loopmarker = /^(startloop|endloop)$/;
+var reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
+var reg_winconditionquantifiers = /^(all|any|no|some)$/;
+var keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
+
+// regular expressions
+var reg = {
+    // comments
+    comment_begin: /\(/,
+    comment_end: /\)/,
+    // anything but the start of a comment
+    no_comment: /[^(]/,
+    // a word
+    word: /[a-z_]\w*/i,
+    // positive decimal integer
+    int: /[0-9]+/,
+    // hexadecimal integer
+    hex: /#[0-9a-f]+/i,
+    // named colors
+    colors: /lightbrown|brown|darkbrown|black|darkgray|darkgrey|gray|grey|lightgray|lightgrey|white|pink|lightred|red|darkred|orange|yellow|lightgreen|green|darkgreen|lightblue|blue|darkblue|purple|transparent/i,
+    // hex colors
+    hex_color: /#(?:[0-9a-f]{3}){1,2}/i,
+    // line separator (only for decoration)
+    separator: /===+\s*/,
+    // section names
+    section: /objects|legend|sounds|collisionlayers|rules|winconditions|levels/i,
+    // sprite matrix line
+    sprite: /[.0-9]+/,
+    // options which are either on or off (such as debug, noaction, noundo...)
+    boolean_option: /run_rules_on_level_start|norepeat_action|require_player_movement|debug|verbose_logging|throttle_movement|noundo|noaction|norestart|scanline/i,
+    // options with arguments (such as title, author, text_color...)
+    valued_option: /title|author|homepage|background_color|text_color|key_repeat_interval|realtime_interval|again_interval|flickscreen|zoomscreen|color_palette|youtube/i,
+    // events that can happen to an object
+    object_events: /action|create|destroy|move|cantmove/i,
+    // events that effect the entire game
+    global_events: /undo|restart|cancel|titlescreen|startgame|endgame|startlevel|endlevel|showmessage|closemessage/i,
+    // absolute dirs can be used anywhere
+    absolute_directions: /up|down|left|right|horizontal|vertical/i,
+    // relative dirs can only be used in reference to another direction
+    relative_directions: /[^v<>]|parallel|perpendicular/i,
+    
+};
+
+
+
+// Returns an object containing methods for tokenizing text using stored states
+function parser() {
+    return {
+        startState: function() {
+            return {};
+        },
+        copyState: copySimpleObject,
+        token: tokenizer
+    };
+}
+
+// Copies a simple javascript object
+// A simple object is one which contains only strings, numbers, booleans,
+// undefined values, and other simple objects. It must also be non-recursive.
+function copySimpleObject(obj) {
+    var newobj = {};
+    for (var key in obj) {
+        if (typeof obj[key] === 'object') {
+            newobj[key] = copySimpleObject(obj[key])
+        } else {
+            newobj[key] = obj[key];
+        }
+    }
+    return newobj;
+}
+
+// Ensures that a certain key exists in an object
+// If a key doesn't exist in an object, set it to the specified value
+// Otherwise, do nothing
+function ensure(object, key, value) {
+    if (!(key in object)) {
+        object[key] = value;
+    }
+}
+
+// Takes a text stream and state object (representing the current state of the
+// tokenizer), eats characters from the stream, and returns the type of token
+// (as a string) or null
+// Result object builds up tokens and errors for use in compilation
+// This method is just a wrapper for tokenizer_main
+function tokenizer(stream, state, result) {
+    // for debugging purposes only
+    result = {};
+    
+    // If parsing for compilation, the line number should be provided in the
+    // state object. This is because there's no reliable way to keep track of
+    // line numbers inside this function. If not compiling, provide a dummy
+    // line number
+    ensure(state, 'line', 0);
+    
+    // starting position of the next token
+    var start_pos = stream.pos;
+    
+    // create a dummy result object if necessary
+    if (!result) {
+        result = {
+            add: function() {},
+            log: function() {},
+            warn: function() {},
+            err: function() {},
+        };
+        
+    // a result object (for compilation) was provided
+    // ensure that it has usesful features
+    } else {
+        ensure(result, 'tokens', []); // all generated tokens
+        ensure(result, 'messages', []); // messages array
+        
+        // add token function
+        result.add = function(type, value) {
+            result.tokens.push({
+                type: type,
+                value: value,
+                line: state.line,
+                column: start_pos,
+            });
+        }
+        
+        // add message logging functionality
+        result.message = function(type, text) {
+            result.messages.push({
+                type: type,
+                text: text,
+                line: state.line,
+                column: start_pos
+            });
+            console.log(result.messages[result.messages.length - 1]);
+        }
+        result.log = function(text) {
+            result.message(Message.log, text);
+        }
+        result.warn = function(text) {
+            result.message(Message.warning, text);
+        }
+        result.err = function(text) {
+            result.message(Message.error, text);
+        }
+    }
+    
+    // get the next token type (updating stream pos)
+    var type = tokenizer_main(stream, state, result);
+    
+    // add to the array if token is not empty
+    if (stream.pos > start_pos) {
+        var token = stream.string.substring(start_pos, stream.pos);
+        result.add(type, token);
+    }
+    
+    return type;
+}
+
+// Main tokenizer functionality
+function tokenizer_main(stream, state, result) {
+    ensure(state, 'sol', false); // at the start of the line?
+    ensure(state, 'code', false); // have we parsed any new code?
+    ensure(state, 'last_pos', 0); // last stream posisition
+    ensure(state, 'comment_level', 0); // depth of nested comments
+    ensure(state, 'separator', false); // are we on a separator line?
+    ensure(state, 'section', 'preamble'); // what section are we in?
+    
+    // if we haven't moved since the last run, we haven't parsed any code
+    if (state.last_pos === stream.pos) {
+        state.code = false;
+    }
+    state.last_pos = stream.pos;
+    
+    // state.sol should be true when we are at the start of a line,
+    // excluding whitespace and comments
+    if (state.code) {
+        state.sol = false;
+    }
+    
+    // at start of a line
+    if (stream.sol()) {
+        state.sol = true;
+        state.code = false;
+    }
+    
+    /////////////////////////////
+    // Whitespace and Comments //
+    /////////////////////////////
+    
+    // ignore any whitespace
+    if (stream.eatSpace()) {
+        return null;
+    }
+    
+    // already inside a comment
+    if (state.comment_level > 0) {
+        return parseComment(stream, state);
+    }
+    
+    // entering a new comment
+    if (stream.match(reg.comment_begin)) {
+        state.comment_level += 1;
+        return parseComment(stream, state);
+    }
+    
+    // unmatched ending comment
+    if (stream.match(reg.comment_end)) {
+        return Token.error;
+    }
+    
+    // everything after this point is considered meaningful code
+    // whitespace and comments are not
+    state.code = true;
+    
+    ///////////////////////////////////
+    // Separators and Section Titles //
+    ///////////////////////////////////
+    
+    // following a separator (in the same line)
+    if (!state.sol && state.separator) {
+        stream.next();
+        return Token.separator;
+    } else {
+        state.separator = false;
+    }
+    
+    // match a separator
+    if (stream.sol() && stream.match(reg.separator)) {
+        if (!stream.eol()) {
+            state.separator = true;
+        }
+        return Token.separator;
+    }
+    
+    // match section titles
+    var match = stream.match(reg.section);
+    if (match) {
+        state.section = match[0].toLowerCase();
+        return Token.section;
+    }
+    
+    // section-specific parsing
+    switch (state.section) {
+        case 'preamble':
+            return parsePreamble(stream, state, result);
+            
+        case 'objects':
+            return parseObjects(stream, state, result);
+            
+        case 'legend':
+            return parseLegend(stream, state, result);
+            
+        case 'sounds':
+            return parseSounds(stream, state, result);
+            
+        case 'collisionlayers':
+            return parseCollisionLayers(stream, state, result);
+            
+        case 'rules':
+            return parseRules(stream, state, result);
+            
+        case 'winconditions':
+            return parseWinConditions(stream, state, result);
+            
+        case 'levels':
+            return parseLevels(stream, state, result);
+            
+        default:
+            stream.skipToEnd();
+            return Token.error;
+    }
+    
+    // fallback (we shouldn't get here, but just in case)
+    stream.next();
+    result.err('Unknown error while parsing');
+    return Token.error;
+}
+
+function parseComment(stream, state, result) {
+    while (!stream.eol() && state.comment_level > 0) {
+        if (stream.eat(reg.comment_begin)) {
+            state.comment_level += 1;
+        } else if (stream.eat(reg.comment_end)) {
+            state.comment_level -= 1;
+        } else {
+            stream.next();
+        }
+    }
+    return Token.comment;
+}
+
+// parsing function for the preamble section
+function parsePreamble(stream, state, result) {
+    ensure(state, 'option_identifier', true);
+    
+    // parse an option identifier
+    if (state.option_identifier) {
+        
+        // try to match a word
+        var match = stream.match(reg.word);
+        if (match) {
+            var word = match[0];
+            
+            // try to match a boolean option
+            if (word.match(reg.boolean_option)) {
+                return Token.option;
+                
+            // try to match a valued option
+            } else if (word.match(reg.valued_option)) {
+                state.option_identifier = false;
+                return Token.option;
+                
+            // didn't match any known identifiers
+            } else {
+                result.err('Preamble option "' + word + '" didn\'t match any known identifiers.');
+                return Token.error;
+            }
+            
+        // didn't match a word
+        } else {
+            result.err('Unexpected symbol "' + stream.next() + '"');
+            return Token.error;
+        }
+        
+    // not parsing an option identifier
+    // parse the argument to a valued option
+    } else {
+        state.option_identifier = true;
+        stream.skipToEnd();
+        return Token.argument;
+    }
+}
+
+function parseObjects(stream, state, result) {
+    ensure(state, 'subsection', 'name');
+    ensure(state, 'complete', false);
+    ensure(state, 'last_line', 0);
+    
+    // object name subsection
+    if (state.subsection === 'name') {
+        
+        // finished parsing the name
+        if (state.complete) {
+            if (state.sol) {
+                state.complete = false;
+                state.subsection = 'colors';
+                return null;
+            } else {
+                result.err('Unexpected symbol "' + stream.next() + '"');
+                return Token.error;
+            }
+        }
+        
+        // haven't parsed the name yet
+        var match = stream.match(reg.word);
+        if (match) {
+            state.complete = true;
+            return Token.name;
+        } else {
+            result.err('Unexpected symbol "' + stream.next() + '"');
+            return Token.error;
+        }
+        
+    // colors subsection
+    } else if (state.subsection === 'colors') {
+        
+        if (state.complete && state.sol) {
+            state.complete = false;
+            if (stream.eol()) {
+                state.subsection = 'name';
+            } else {
+                state.subsection = 'sprite';
+                state.last_line = state.line;
+            }
+            return null;
+        }
+        
+        var match;
+        
+        // try to parse a color word
+        match = stream.match(reg.word);
+        if (match) {
+            var word = match[0];
+            var color = word.match(reg.colors);
+            
+            // if entire word is a valid color
+            if (color && color[0] === word) {
+                state.complete = true;
+                return Token.color;
+            } else {
+                result.err('Unrecognized color "' + word + '"');
+                return Token.error;
+            }
+        }
+        
+        // try to parse a hex color
+        match = stream.match(reg.hex);
+        if (match) {
+            var hex = match[0];
+            var color = hex.match(reg.hex_color);
+            
+            // if entire hex number is a valid color
+            if (color && color[0] === hex) {
+                state.complete = true;
+                return Token.color;
+            } else {
+                result.err('Unrecognized color "' + hex + '"');
+                return Token.error;
+            }
+        }
+        
+        result.err('Unexpected symbol "' + stream.next() + '". Expected a color');
+        return Token.error;
+        
+    // sprite subsection
+    } else if (state.subsection === 'sprite') {
+        
+        if (state.sol) {
+            if (!stream.sol()) {
+                result.warn('Spacing before sprite rows should be avoided');
+            }
+            
+            if (stream.match(reg.sprite)) {
+                if (state.line - state.last_line > 1) {
+                    result.warn('Empty lines between sprite rows should be avoided');
+                }
+                state.last_line = state.line;
+                return Token.sprite;
+                
+            } else {
+                state.subsection = 'name';
+                state.complete = false;
+                return null;
+            }
+        }
+        
+        if (stream.match(reg.sprite)) {
+            result.err('Each row of the sprite must be on separate new line');
+            return null;
+        }
+        
+        result.err('Unexpected symbol "' + stream.next() + '"');
+        return Token.error;
+        
+    } else {
+        result.err('Parsing function error. Unknown object section "' + state.subsection + '"');
+        state.subsection = 'name';
+    }
+    
+    stream.next();
+    return Token.error;
+}
+
+function parseLegend(stream, state, result) {
+    stream.next();
+    return null;
+}
+
+function parseSounds(stream, state, result) {
+    var name = stream.match(reg.sound_verbs, true);
+    if (name !== null) {
+        return Token.sound_name;
+    }
+    
+    name = stream.match(reg.sound_directions, true);
+    if (name !== null) {
+        return Token.direction;
+    }
+    
+    name = stream.match(reg.int, true);
+    if (name !== null) {
+        return Token.sound;
+    }
+    
+    name = stream.match(/[^\[\|\]\s]*/, true);
+    if (name !== null) {
+        return Token.name;
+    }
+    
+    state.err('Unexpected symbol "' + stream.next() + '"');
+    return Token.error;
+}
+
+function parseCollisionLayers(stream, state, result) {
+    stream.next();
+    return null;
+}
+
+function parseRules(stream, state, result) {
+    stream.next();
+    return null;
+}
+
+function parseWinConditions(stream, state, result) {
+    stream.next();
+    return null;
+}
+
+function parseLevels(stream, state, result) {
+    stream.next();
+    return null;
+}
+
+// window.CodeMirror.defineMode('puzzle', codeMirrorFn);
+window.CodeMirror.defineMode('puzzle', parser);

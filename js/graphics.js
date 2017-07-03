@@ -1,4 +1,4 @@
-function createSprite(name,spritegrid, colors, padding) {
+function createSprite(name, spritegrid, colors, padding) {
 	if (colors === undefined) {
 		colors = [state.bgcolor, state.fgcolor];
 	}
@@ -184,7 +184,7 @@ function glyphCount(){
         if (n.length==1 && state.glyphDict.hasOwnProperty(n)) {
             count++;
         }
-    }    
+    }
     return count;
 }
 
@@ -205,7 +205,7 @@ function redraw() {
                 var ch = titleImage[j].charAt(i);
                 if (ch in textImages) {
                     var sprite = textImages[ch];
-                    ctx.drawImage(sprite, xoffset + i * cellwidth, yoffset + j * cellheight);                   
+                    ctx.drawImage(sprite, xoffset + i * cellwidth, yoffset + j * cellheight);
                 }
             }
         }
@@ -261,16 +261,16 @@ function redraw() {
                 minj=oldflickscreendat[1];
                 maxi=oldflickscreendat[2];
                 maxj=oldflickscreendat[3];
-            }         
+            }
         }
 	    
 
         for (var i = mini; i < maxi; i++) {
             for (var j = minj; j < maxj; j++) {
                 var posIndex = j + i * level.height;
-                var posMask = level.getCellInto(posIndex,_o12);                
+                var posMask = level.getCellInto(posIndex,_o12);
                 for (var k = 0; k < state.objectCount; k++) {
-                    if (posMask.get(k) != 0) {                  
+                    if (posMask.get(k) != 0) {
                         var sprite = spriteimages[k];
                         ctx.drawImage(sprite, xoffset + (i-mini) * cellwidth, yoffset + (j-minj) * cellheight);
                     }
@@ -296,7 +296,7 @@ function drawEditorIcons() {
 
 	ctx.drawImage(glyphPrintButton,xoffset-cellwidth,yoffset-cellheight*(1+editorRowCount));
 	if (mouseCoordY===(-1-editorRowCount)&&mouseCoordX===-1) {
-			ctx.drawImage(glyphMouseOver,xoffset-cellwidth,yoffset-cellheight*(1+editorRowCount));								
+			ctx.drawImage(glyphMouseOver,xoffset-cellwidth,yoffset-cellheight*(1+editorRowCount));
 	}
 
 	var ypos = editorRowCount-(-mouseCoordY-2)-1;
@@ -309,23 +309,23 @@ function drawEditorIcons() {
         var ypos=(i/(screenwidth-1))|0;
 		ctx.drawImage(sprite,xoffset+(xpos)*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));
 		if (mouseCoordX>=0&&mouseCoordX<(screenwidth-1)&&mouseIndex===i) {
-			ctx.drawImage(glyphMouseOver,xoffset+xpos*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));						
+			ctx.drawImage(glyphMouseOver,xoffset+xpos*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));
 		}
 		if (i===glyphSelectedIndex) {
 			ctx.drawImage(glyphHighlight,xoffset+xpos*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));
-		} 		
+		}
 	}
 	if (mouseCoordX>=-1&&mouseCoordY>=-1&&mouseCoordX<screenwidth-1&&mouseCoordY<screenheight-1-editorRowCount) {
 		if (mouseCoordX==-1||mouseCoordY==-1||mouseCoordX==screenwidth-2||mouseCoordY===screenheight-2-editorRowCount) {
 			ctx.drawImage(glyphHighlightResize,
 				xoffset+mouseCoordX*cellwidth,
 				yoffset+mouseCoordY*cellheight
-				);								
+				);
 		} else {
 			ctx.drawImage(glyphHighlight,
 				xoffset+mouseCoordX*cellwidth,
 				yoffset+mouseCoordY*cellheight
-				);				
+				);
 		}
 	}
 

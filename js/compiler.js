@@ -2428,7 +2428,7 @@ function loadFile(str) {
 		var ss = new CodeMirror.StringStream(line, 4);
 		do {
 			processor.token(ss, state);
-
+            
 			if (errorCount>MAX_ERRORS) {
 				consolePrint("too many errors, aborting compilation");
 				return;
