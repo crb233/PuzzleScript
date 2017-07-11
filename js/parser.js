@@ -1294,6 +1294,9 @@ var Token = {
     sound_name: 'SOUNDVERB',
     sound: 'SOUND',
     direction: 'DIRECTION',
+    modifier: 'DIRECTION',
+    assignment: 'ASSSIGNMENT',
+    operator: 'LOGICWORD',
     error: 'ERROR',
 };
 
@@ -1324,7 +1327,6 @@ var reg_csv_separators = /[ \,]*/;
 var reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|forward|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
 var reg_loopmarker = /^(startloop|endloop)$/;
 var reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
-var reg_winconditionquantifiers = /^(all|any|no|some)$/;
 var keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
 
 // regular expressions
@@ -1332,38 +1334,87 @@ var reg = {
     // comments
     comment_begin: /\(/,
     comment_end: /\)/,
+    
     // anything but the start of a comment
     no_comment: /[^(]/,
-    // a word
+    
+    // a word; a valid name for a variable
     word: /[a-z_]\w*/i,
+    
+    // a valid legend symbol
+    legend_symbol: /[^()=]/i,
+    
     // positive decimal integer
     int: /[0-9]+/,
-    // hexadecimal integer
-    hex: /#[0-9a-f]+/i,
-    // named colors
+    
+    // named colors; must also match reg.word
     colors: /lightbrown|brown|darkbrown|black|darkgray|darkgrey|gray|grey|lightgray|lightgrey|white|pink|lightred|red|darkred|orange|yellow|lightgreen|green|darkgreen|lightblue|blue|darkblue|purple|transparent/i,
+    
+    // hexadecimal integer (starting with # as in colors)
+    hex: /#[0-9a-f]+/i,
+    
     // hex colors
     hex_color: /#(?:[0-9a-f]{3}){1,2}/i,
+    
     // line separator (only for decoration)
     separator: /===+\s*/,
-    // section names
+    
+    // section names; must also match reg.word
     section: /objects|legend|sounds|collisionlayers|rules|winconditions|levels/i,
-    // sprite matrix line
+    
+    // a single line of a sprite matrix
     sprite: /[.0-9]+/,
+    
+    // logical operator (used in legend); must also match reg.word
+    operator: /and|or/i,
+    
+    // assignment operation
+    assignment: /=/,
+    
     // options which are either on or off (such as debug, noaction, noundo...)
     boolean_option: /run_rules_on_level_start|norepeat_action|require_player_movement|debug|verbose_logging|throttle_movement|noundo|noaction|norestart|scanline/i,
+    
     // options with arguments (such as title, author, text_color...)
     valued_option: /title|author|homepage|background_color|text_color|key_repeat_interval|realtime_interval|again_interval|flickscreen|zoomscreen|color_palette|youtube/i,
+    
     // events that can happen to an object
     object_events: /action|create|destroy|move|cantmove/i,
+    
     // events that effect the entire game
     global_events: /undo|restart|cancel|titlescreen|startgame|endgame|startlevel|endlevel|showmessage|closemessage/i,
+    
     // absolute dirs can be used anywhere
     absolute_directions: /up|down|left|right|horizontal|vertical/i,
-    // relative dirs can only be used in reference to another direction
-    relative_directions: /[^v<>]|parallel|perpendicular/i,
     
+    // relative dirs can only be used in reference to another direction
+    relative_directions: /[^v<>]|parallel|perpendicular|orthogonal/i,
+    
+    // a descriptive word for specific objects
+    object_modifier: /action|no|moving|stationary/i,
+    
+    // keywords that modify the function of a rule
+    rule_modifier: /late|rigid|random/i,
+    
+    // command word after action
+    basic_command: /cancel|checkpoint|restart|win|again/i,
+    
+    // used at the end of rules and between levels
+    message_command: /message/i,
+    
+    // parts of a cell (in rules section)
+    cell_start: /\[/,
+    cell_separator: /\|/,
+    cell_range: /\.\.\./,
+    cell_start: /\]/,
+    
+    // symbol which binds two sets of cells into a rule
+    rule_binding: /->/,
+    
+    // quantifiers for win conditions
+    win_quantifiers: /all|some|no|any/i,
 };
+
+// moving must be preceeded by moving
 
 
 
@@ -1658,10 +1709,10 @@ function parseObjects(stream, state, result) {
     ensure(state, 'complete', false);
     ensure(state, 'last_line', 0);
     
-    // object name subsection
     if (state.subsection === 'name') {
+        // object name subsection
         
-        // finished parsing the name
+        // if finished parsing the name
         if (state.complete) {
             if (state.sol) {
                 state.complete = false;
@@ -1683,8 +1734,8 @@ function parseObjects(stream, state, result) {
             return Token.error;
         }
         
-    // colors subsection
     } else if (state.subsection === 'colors') {
+        // colors subsection
         
         if (state.complete && state.sol) {
             state.complete = false;
@@ -1734,8 +1785,8 @@ function parseObjects(stream, state, result) {
         result.err('Unexpected symbol "' + stream.next() + '". Expected a color');
         return Token.error;
         
-    // sprite subsection
     } else if (state.subsection === 'sprite') {
+        // sprite subsection
         
         if (state.sol) {
             if (!stream.sol()) {
@@ -1767,15 +1818,107 @@ function parseObjects(stream, state, result) {
     } else {
         result.err('Parsing function error. Unknown object section "' + state.subsection + '"');
         state.subsection = 'name';
+        return null;
     }
-    
-    stream.next();
-    return Token.error;
 }
 
 function parseLegend(stream, state, result) {
-    stream.next();
-    return null;
+    ensure(state, 'op_type', null);
+    
+    // subsections for each line of the legend:
+    // name assignment object [operator object]*
+    
+    if (state.sol) {
+        if (state.subsection === 'assignment') {
+            result.err('Unexpected end of line. Incomplete legend assignment');
+        } else if (state.subsection === 'object') {
+            if (state.op_type === null) {
+                result.err('Unexpected end of line. Missing assignment');
+            } else {
+                result.err('Unexpected end of line. Trailing operator');
+            }
+        }
+        
+        state.op_type = null;
+        state.subsection = 'name';
+    }
+    
+    if (state.subsection === 'name') {
+        // name subsection
+        
+        if (stream.match(reg.word) || stream.match(reg.legend_symbol)) {
+            state.subsection = 'assignment';
+            return Token.name;
+            
+        } else {
+            result.err('Unexpected symbol "' + stream.next() + '"');
+            return Token.error;
+        }
+        
+    } else if (state.subsection === 'assignment') {
+        // assignment subsection
+        
+        if (stream.match(reg.assignment)) {
+            state.subsection = 'object';
+            return Token.assignment;
+            
+        } else {
+            result.err('Unexpected symbol "' + stream.next() + '"');
+            return Token.error;
+        }
+        
+    } else if (state.subsection === 'object') {
+        // object subsection
+        
+        if (stream.match(reg.word)) {
+            state.subsection = 'operator';
+            return Token.name;
+            
+        } else {
+            result.err('Unexpected symbol "' + stream.next + '". Expected an object name');
+            return Token.error;
+        }
+        
+    } else if (state.subsection === 'operator') {
+        // operator subsection
+        
+        var word = stream.match(reg.word);
+        if (word) {
+            // matched a word; get string part
+            word = word[0];
+            
+            var op = word.match(reg.operator);
+            if (op && op[0] === word) {
+                // entire word matched an operaator; get string part
+                op = op[0];
+                
+                if (op !== state.op_type && state.op_type !== null) {
+                    result.err('Cannot mix operator types.');
+                    return Tooken.error;
+                }
+                
+                state.op_type = op;
+                state.subsection = 'object';
+                return Token.operator;
+                
+            } else {
+                // entire word isn't an operator
+                result.err('Unexpected word + "' + word + '". Expected an operator');
+                return Token.error;
+            }
+            
+        } else {
+            // next symbol isn't a word at all
+            result.err('Unexpected symbol "' + stream.next() + '". Expected an operator');
+            return Token.error;
+        }
+        
+    } else {
+        // not start of line and unrecognized subsection
+        result.err('Unrecognized section. This error shouldn\'t ever occur');
+        state.section = 'name';
+        return null;
+    }
 }
 
 function parseSounds(stream, state, result) {
@@ -1804,6 +1947,8 @@ function parseSounds(stream, state, result) {
 }
 
 function parseCollisionLayers(stream, state, result) {
+    
+    
     stream.next();
     return null;
 }
