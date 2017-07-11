@@ -1329,7 +1329,7 @@ var reg_loopmarker = /^(startloop|endloop)$/;
 var reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
 var keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
 
-// regular expressions
+// all regular expressions used for parsing
 var reg = {
     // comments
     comment_begin: /\(/,
@@ -1370,6 +1370,9 @@ var reg = {
     
     // assignment operation
     assignment: /=/,
+    
+    // separator between items in a list, especially for collision layers
+    list_separator: /,/,
     
     // options which are either on or off (such as debug, noaction, noundo...)
     boolean_option: /run_rules_on_level_start|norepeat_action|require_player_movement|debug|verbose_logging|throttle_movement|noundo|noaction|norestart|scanline/i,
@@ -1453,11 +1456,23 @@ function ensure(object, key, value) {
     }
 }
 
+// Tries to set an identifier in an object to true
+// If the identifier already exists, return false
+// Otherwise initialize it to true and return true
+function setOnce(object, identifier) {
+    if (object.hasOwnProperty(identifier)) {
+        return false;
+    } else {
+        object[identifier] = true;
+        return true;
+    }
+}
+
 // Takes a text stream and state object (representing the current state of the
 // tokenizer), eats characters from the stream, and returns the type of token
 // (as a string) or null
 // Result object builds up tokens and errors for use in compilation
-// This method is just a wrapper for tokenizer_main
+// This method is just a wrapper for mainParser
 function tokenizer(stream, state, result) {
     // for debugging purposes only
     result = {};
@@ -1466,7 +1481,9 @@ function tokenizer(stream, state, result) {
     // state object. This is because there's no reliable way to keep track of
     // line numbers inside this function. If not compiling, provide a dummy
     // line number
-    ensure(state, 'line', 0);
+    if (setOnce(state, 'tokenizer')) {
+        state.line = 0;
+    }
     
     // starting position of the next token
     var start_pos = stream.pos;
@@ -1504,6 +1521,8 @@ function tokenizer(stream, state, result) {
                 line: state.line,
                 column: start_pos
             });
+            
+            // again, for debugging only
             console.log(result.messages[result.messages.length - 1]);
         }
         result.log = function(text) {
@@ -1518,7 +1537,7 @@ function tokenizer(stream, state, result) {
     }
     
     // get the next token type (updating stream pos)
-    var type = tokenizer_main(stream, state, result);
+    var type = mainParser(stream, state, result);
     
     // add to the array if token is not empty
     if (stream.pos > start_pos) {
@@ -1530,13 +1549,17 @@ function tokenizer(stream, state, result) {
 }
 
 // Main tokenizer functionality
-function tokenizer_main(stream, state, result) {
-    ensure(state, 'sol', false); // at the start of the line?
-    ensure(state, 'code', false); // have we parsed any new code?
-    ensure(state, 'last_pos', 0); // last stream posisition
-    ensure(state, 'comment_level', 0); // depth of nested comments
-    ensure(state, 'separator', false); // are we on a separator line?
-    ensure(state, 'section', 'preamble'); // what section are we in?
+function mainParser(stream, state, result) {
+    
+    // run once to initialize some variables
+    if (setOnce(state, 'mainParser')) {
+        state.sol = false; // at the start of the line?
+        state.code = false; // have we parsed any new code?
+        state.last_pos = 0; // last stream posisition
+        state.comment_level = 0; // depth of nested comments
+        state.separator = false; // are we on a separator line?
+        state.section = 'preamble'; // what section are we in?
+    }
     
     // if we haven't moved since the last run, we haven't parsed any code
     if (state.last_pos === stream.pos) {
@@ -1640,15 +1663,12 @@ function tokenizer_main(stream, state, result) {
             
         default:
             stream.skipToEnd();
+            result.err('Unknown section identifier "' + state.section + '"');
             return Token.error;
     }
-    
-    // fallback (we shouldn't get here, but just in case)
-    stream.next();
-    result.err('Unknown error while parsing');
-    return Token.error;
 }
 
+// parses the a comment until end of line or comment_level is 0
 function parseComment(stream, state, result) {
     while (!stream.eol() && state.comment_level > 0) {
         if (stream.eat(reg.comment_begin)) {
@@ -1664,7 +1684,11 @@ function parseComment(stream, state, result) {
 
 // parsing function for the preamble section
 function parsePreamble(stream, state, result) {
-    ensure(state, 'option_identifier', true);
+    
+    // run once to initialize some variables
+    if (setOnce(state, 'parsePreamble')) {
+        state.option_identifier = true;
+    }
     
     // parse an option identifier
     if (state.option_identifier) {
@@ -1704,10 +1728,15 @@ function parsePreamble(stream, state, result) {
     }
 }
 
+// parse the objects section
 function parseObjects(stream, state, result) {
-    ensure(state, 'subsection', 'name');
-    ensure(state, 'complete', false);
-    ensure(state, 'last_line', 0);
+    
+    // run once to initialize some variables
+    if (setOnce(state, 'parseObjects')) {
+        state.subsection = 'name';
+        state.complete = false;
+        state.last_line = state.line;
+    }
     
     if (state.subsection === 'name') {
         // object name subsection
@@ -1822,8 +1851,14 @@ function parseObjects(stream, state, result) {
     }
 }
 
+// parse the legend section
 function parseLegend(stream, state, result) {
-    ensure(state, 'op_type', null);
+    
+    // run once to initialize some variables
+    if (setOnce(state, 'parseLegend')) {
+        state.subsection = 'name';
+        state.op_type = null;
+    }
     
     // subsections for each line of the legend:
     // name assignment object [operator object]*
@@ -1921,6 +1956,7 @@ function parseLegend(stream, state, result) {
     }
 }
 
+// parse the sounds section
 function parseSounds(stream, state, result) {
     var name = stream.match(reg.sound_verbs, true);
     if (name !== null) {
@@ -1946,11 +1982,34 @@ function parseSounds(stream, state, result) {
     return Token.error;
 }
 
+// parses the collisionlayers section
 function parseCollisionLayers(stream, state, result) {
     
+    // run once to initialize some variables
+    if (setOnce(state, 'parseLegend')) {
+        state.name_separator = true;
+    }
     
-    stream.next();
-    return null;
+    if (state.name_separator) {
+        // try to parse an item separator
+        // no problem, even if we fail to parse the separator
+        
+        stream.match(reg.list_separator);
+        state.name_separator = false;
+        return null;
+        
+    } else {
+        // we expect to parse an object name
+        
+        if (stream.match(reg.word)) {
+            state.name_separator = true;
+            return Token.name;
+            
+        } else {
+            result.err('Unexpected symbol "' + stream.next() + '". Expected an object name');
+            return Token.error;
+        }
+    }
 }
 
 function parseRules(stream, state, result) {
