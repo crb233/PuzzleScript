@@ -1320,10 +1320,6 @@ function err(message, line, column) {
     };
 }
 
-var commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
-var reg_soundseed = /\d+\b/;
-var reg_notcommentstart = /[^\(]+/;
-var reg_csv_separators = /[ \,]*/;
 var reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|forward|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
 var reg_loopmarker = /^(startloop|endloop)$/;
 var reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
@@ -1413,8 +1409,12 @@ var reg = {
     // symbol which binds two sets of cells into a rule
     rule_binding: /->/,
     
-    // quantifiers for win conditions
-    win_quantifiers: /all|some|no|any/i,
+    // describes the number of objects in a win condition
+    win_quantifier: /all|any|some|no/i,
+    
+    // describes the relation between objects in a win condition
+    // currently only valid option is 'on'
+    win_relation: /on/i,
 };
 
 // moving must be preceeded by moving
@@ -1924,7 +1924,7 @@ function parseLegend(stream, state, result) {
             
             var op = word.match(reg.operator);
             if (op && op[0] === word) {
-                // entire word matched an operaator; get string part
+                // entire word matched an operator; get string part
                 op = op[0];
                 
                 if (op !== state.op_type && state.op_type !== null) {
@@ -1986,7 +1986,7 @@ function parseSounds(stream, state, result) {
 function parseCollisionLayers(stream, state, result) {
     
     // run once to initialize some variables
-    if (setOnce(state, 'parseLegend')) {
+    if (setOnce(state, 'parseCollisionLayers')) {
         state.name_separator = true;
     }
     
@@ -2018,8 +2018,77 @@ function parseRules(stream, state, result) {
 }
 
 function parseWinConditions(stream, state, result) {
-    stream.next();
-    return null;
+    
+    // run once to initialize some variables
+    if (setOnce(state, 'parseWinConditions')) {
+        state.subsection = 'quantifier';
+    }
+    
+    if (state.sol) {
+        if (state.subsection === 'name1') {
+            result.err('Unexpected end of line. Missing object name');
+        } else if (state.subsection === 'name2') {
+            result.err('Unexpected end of line. Missing object name');
+        }
+        
+        state.subsection = 'quantifier';
+    }
+    
+    if (state.subsection === 'quantifier') {
+        // parse a win quantifier (all, any, some, no)
+        
+        if (stream.match(reg.win_quantifier)) {
+            state.subsection = 'name1';
+            return Token.operator;
+        } else {
+            var word = stream.match(reg.word);
+            if (word) {
+                result.err('Unexpected word "' + word[0] + '". Expected a win quantifier');
+                return Token.error;
+            } else {
+                result.err('Unexpected symbol "' + stream.next() + '". Expected a win quantifier');
+                return Token.error;
+            }
+        }
+        
+    } else if (state.subsection === 'name1') {
+        // first name subsection
+        
+        if (stream.match(reg.word)) {
+            state.subsection = 'relation';
+            return Token.name;
+        } else {
+            result.err('Unexpected symbol "' + stream.next() + '". Expected an object name');
+            return Token.error;
+        }
+        
+    } else if (state.subsection === 'relation') {
+        // win relation subsection
+        
+        if (stream.match(reg.win_relation)) {
+            state.subsection = 'name2';
+            return Token.operator;
+        } else {
+            var word = stream.match(reg.word);
+            if (word) {
+                result.err('Unexpected word "' + word[0] + '". Expected a win relation (on)');
+                return Token.error;
+            } else {
+                result.err('Unexpected symbol "' + stream.next() + '". Expected a win relation (on)');
+                return Token.error;
+            }
+        }
+        
+    } else if (state.subsection === 'name2') {
+        // second name subsection
+        
+        if (stream.match(reg.word)) {
+            return Token.name;
+        } else {
+            result.err('Unexpected symbol "' + stream.next() + '". Expected an object name');
+            return Token.error;
+        }
+    }
 }
 
 function parseLevels(stream, state, result) {
