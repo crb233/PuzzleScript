@@ -1295,14 +1295,15 @@ var Token = {
     sprite: 'SPRITEMATRIX',
     sound_name: 'SOUNDVERB',
     sound: 'SOUND',
-    direction: 'DIRECTION',
     modifier: 'DIRECTION',
     assignment: 'ASSSIGNMENT',
     operator: 'LOGICWORD',
     command: 'COMMAND',
     message: 'MESSAGE',
     symbol: 'BRACKET',
+    loop: 'BRACKET',
     arrow: 'ARROW',
+    level: 'LEVEL',
     error: 'ERROR',
 };
 
@@ -1321,7 +1322,10 @@ var reg = {
     // anything but the start of a comment
     no_comment: /[^(]/,
     
-    // a word; a valid name for a variable
+    // anything but a comment or whitespace
+    no_comment_or_space: /[^(\s]/,
+    
+    // a word; a valid name for an object or sound
     word: /[a-z_]\w*/i,
     
     // a valid legend symbol
@@ -1368,6 +1372,10 @@ var reg = {
     
     // events that effect the entire game
     global_event: /undo|restart|cancel|titlescreen|startgame|endgame|startlevel|endlevel|showmessage|closemessage/i,
+    
+    // rule loop markers
+    loop_begin: /startloop/i,
+    loop_end: /endloop/i,
     
     // absolute dirs can be used anywhere
     absolute_direction: /up|down|left|right|horizontal|vertical/i,
@@ -1589,6 +1597,7 @@ function mainParser(stream, state, result) {
     
     // unmatched ending comment
     if (stream.match(reg.comment_end)) {
+        result.err('Found an extra end of comment symbol ")"');
         return Token.error;
     }
     
@@ -1959,7 +1968,7 @@ function parseSounds(stream, state, result) {
     
     name = stream.match(reg.sound_directions, true);
     if (name !== null) {
-        return Token.direction;
+        return ;
     }
     
     name = stream.match(reg.int, true);
@@ -2006,8 +2015,9 @@ function parseCollisionLayers(stream, state, result) {
     }
 }
 
+// should be called when there is an unexpected token
+// logs an error message and returns the error token
 function unrecognized(stream, state, result) {
-    // unexpected word or symbol
     var word = stream.match(reg.word);
     if (word) {
         result.err('Unexpected word "' + word[0] + '"');
@@ -2017,20 +2027,30 @@ function unrecognized(stream, state, result) {
     return Token.error;
 }
 
+// returns whether an entire string matches the given regular expression
 function fullMatch(string, regex) {
     var match = string.match(regex);
     return match && match[0] === string;
 }
 
+// parse the rules section
 function parseRules(stream, state, result) {
+    // TODO parse the + operator
     
     if (setOnce(state, 'parseRules')) {
         state.subsection = 'modifier';
+        
+        // how deeply nested are loops
+        state.loop_level = 0;
+        
+        // which side of the rule are we on (left or right of the arrow)
         state.side = 'left';
     }
     
-    // if at start of new line, throw errors if previous line wasn't complete
     if (state.sol) {
+        // at start of new line
+        
+        // log errors if the previous line was unfinished
         if (state.subsection === 'object') {
             result.err('Unexpected end of line. Expected an object name');
         } else if (state.subsection === 'close') {
@@ -2045,17 +2065,43 @@ function parseRules(stream, state, result) {
             result.err('Unexpected end of line. Missing right side of previous rule');
         }
         
+        // reset the subsection and side
         state.subsection = 'modifier';
         state.side = 'left';
     }
     
-    if (state.subsection === 'modifier') {
+    if (state.subsection === 'empty') {
+        // the rest of the line should be empty
+        // throw an error for everything that isn't
+        
+        stream.eatWhile(reg.no_comment_or_space);
+        result.err('Unexpected characters. Line should be empty');
+        return Token.error;
+        
+    } else if (state.subsection === 'modifier') {
+        // parse for rule modifiers or the opening bracket of a rule
         
         var word = stream.match(reg.word);
         if (word) {
             word = word[0];
             
-            if (fullMatch(word, reg.rule_modifier)) {
+            if (fullMatch(word, reg.loop_begin)) {
+                state.subsection = 'empty';
+                state.loop_level += 1;
+                return Token.loop;
+                
+            } else if (fullMatch(word, reg.loop_end)) {
+                state.subsection = 'empty';
+                if (state.loop_level > 0) {
+                    state.loop_level -= 1;
+                    return Token.loop;
+                    
+                } else {
+                    result.err('Found an extra endloop marker');
+                    return Token.error;
+                }
+                
+            } else if (fullMatch(word, reg.rule_modifier)) {
                 // rule modifier; continue parsing for modifiers
                 return Token.modifier;
                 
@@ -2084,6 +2130,7 @@ function parseRules(stream, state, result) {
         
     } else if (state.subsection === 'open') {
         if (stream.match(reg.cell_start)) {
+            // opening bracket for a new cell
             state.subsection = 'object';
             return Token.symbol;
             
@@ -2094,6 +2141,9 @@ function parseRules(stream, state, result) {
         }
         
     } else if (state.subsection === 'object') {
+        // parse an object and its modifiers
+        // also checks for separators and closing brackets
+        
         var word = stream.match(reg.word);
         if (word) {
             word = word[0];
@@ -2111,8 +2161,7 @@ function parseRules(stream, state, result) {
                 return Token.modifier;
                 
             } else {
-                // words are assumed to be object names
-                // look for closing bracket or separator
+                // words which are not modifiers are assumed to be object names
                 state.subsection = 'close';
                 return Token.name;
             }
@@ -2150,10 +2199,13 @@ function parseRules(stream, state, result) {
             return Token.symbol;
             
         } else {
+            // word or symbol is not expected here; throw an error
             return unrecognized(stream, state, result);
         }
         
     } else if (state.subsection === 'arrow') {
+        // try to parse the arrow (rule binding) symbol
+        
         if (stream.match(reg.arrow)) {
             state.subsection = 'open';
             state.side = 'right';
@@ -2164,6 +2216,8 @@ function parseRules(stream, state, result) {
         }
         
     } else if (state.subsection === 'command') {
+        // try to parse a command at the end of a rule
+        
         var word = stream.match(reg.word);
         if (word) {
             word = word[0];
@@ -2269,8 +2323,43 @@ function parseWinConditions(stream, state, result) {
 }
 
 function parseLevels(stream, state, result) {
-    stream.next();
-    return null;
+    
+    if (setOnce(state, 'parseLevels')) {
+        state.subsection = 'level';
+    }
+    
+    if (state.subsection === 'level') {
+        var word = stream.eatWhile(reg.word);
+        if (state.sol && word) {
+            word = word[0];
+            
+            if (fullMatch(word, reg.message)) {
+                state.subsection = 'message';
+                return Token.command;
+                
+            } else {
+                result.err('Unexpected word "' + word[0] + '". Expected a win relation (on)');
+                return Token.error;
+            }
+        }
+        
+        var chars = stream.eatWhile(reg.no_comment_or_space);
+        if (state.sol && chars) {
+            chars = chars[0];
+            
+            if (state.sol) {
+                return Token.level;
+            } else {
+                return Token.error;
+            }
+        }
+        
+    } else if (state.subsection === 'message') {
+        // parse a message after the message command
+        state.subsection = 'level';
+        stream.skipToEnd();
+        return Token.message;
+    }
 }
 
 // window.CodeMirror.defineMode('puzzle', codeMirrorFn);
